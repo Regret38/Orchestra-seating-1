@@ -1,0 +1,158 @@
+# 무대노트 · 오케스트라 무대 배치
+
+세트와 악기·파트를 선택해 무대에 놓고, 의자·보면대·장의자 준비 수량을 확인하는 한국어 웹 프로그램입니다. 기존 도메인·데이터베이스 코드를 유지하면서 편집 화면과 운영 기능을 연결했습니다.
+
+## 1. 먼저 실행하기
+
+Node.js 24 LTS와 npm이 필요합니다. 터미널에서 **이 README와 package.json이 있는 폴더**로 이동하세요.
+
+```bash
+npm ci
+npm run dev:demo
+```
+
+터미널에 표시되는 주소(일반적으로 http://localhost:5173)를 브라우저에서 여세요.
+
+데모 모드는 계정이 필요 없습니다. 기본 배치와 예시 일정이 제공됩니다. **메모리에 저장되므로 새로고침하거나 탭을 닫으면 초기화됩니다.** 장기 보관할 작업은 `출력·내보내기 → JSON 내보내기`로 저장하세요. JSON을 다시 가져오면 새로운 배치로 복원됩니다. 온라인 저장이나 기기 간 공유는 Supabase 설정 후 가능합니다.
+
+빌드 결과 `dist`도 ZIP에 포함됩니다. 개발 환경 없이 빠르게 확인할 때 Python이 설치되어 있다면 다음 명령으로 열 수 있습니다. HTML 파일을 더블클릭하는 file:// 방식은 지원하지 않습니다.
+
+```bash
+python3 -m http.server 8080 --directory dist
+```
+
+이후 http://localhost:8080에 접속하세요. 포함된 dist는 **데모 빌드**입니다.
+
+## 2. 사용 방법
+
+1. `배치 목록`에서 새 배치를 만들거나 기존 배치를 엽니다.
+2. 상단의 5가지 세트 중 하나를 고릅니다.
+3. 악기와 파트를 선택하고 `무대에 추가`를 누릅니다.
+4. 세트를 끌어 이동합니다. 선택한 세트의 회전 손잡이나 속성 패널로 방향을 바꿉니다.
+5. 속성 패널에서 구성·악기·위치·회전·장의자 길이를 수정하거나 복제·삭제합니다.
+6. `준비 수량` 탭에서 집계와 예비 물품을 확인합니다.
+7. 저장하고, 필요하면 JSON·PNG를 내보내거나 인쇄/PDF로 저장합니다.
+
+모바일에서는 세트를 탭해 선택한 뒤 끌어 이동합니다. 선택되지 않은 곳을 끌면 화면이 움직이고, 두 손가락으로 확대·축소합니다. 모든 필수 동작은 화면의 버튼으로도 할 수 있습니다. 데스크톱에서는 Ctrl/Cmd+S 저장, Ctrl/Cmd+Z 실행 취소, Ctrl/Cmd+Shift+Z 다시 실행, Delete 선택 삭제도 지원합니다.
+
+무대 앞과 관객 방향은 무대 아래쪽입니다. 화면은 **실제 축척 도면이 아닌 배치 안내도**입니다. 장의자 길이는 안내도 단위이고 장의자 1개로 집계합니다.
+
+## 3. 온라인 공동 사용: Supabase 연결
+
+외부 계정과 프로젝트는 사용자가 준비해야 합니다. 이 배포본은 실제 사용자 계정에 연결하거나 외부에 게시하지 않았습니다.
+
+### 데이터베이스 준비
+
+1. Supabase에서 프로젝트를 만듭니다.
+2. SQL Editor에서 아래 파일을 순서대로 한 번씩 실행합니다. 기존 테이블이 있는 프로젝트에는 초기 마이그레이션을 다시 실행하지 마세요.
+   - `supabase/migrations/20261025000000_init.sql`
+   - `supabase/migrations/20261026000000_hardening.sql`
+3. 기존 초기 마이그레이션을 이미 적용했다면 두 번째 파일만 추가 적용하세요. SQL Editor 관리자 권한에서 실행해야 합니다.
+4. Authentication 설정에서 이메일 로그인을 활성화하고 이메일 인증을 켜 둡니다. **익명 로그인은 사용하지 않습니다.** 공개 회원가입은 계정 생성만 허용하며, 팀 데이터 접근은 초대 수락 후 가능합니다.
+5. Authentication URL Configuration에서 Site URL과 Redirect URLs에 실제 배포 주소를 등록합니다. 로컬 개발 시 `http://localhost:5173/`도 등록하세요. GitHub Pages 프로젝트는 `/저장소이름/`까지 포함합니다.
+
+### 앱 연결 설정
+
+`.env.example`을 `.env.local`로 복사하고 아래 값을 넣습니다.
+
+```dotenv
+VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR-PUBLISHABLE-KEY
+VITE_DEMO_MODE=false
+VITE_BASE_PATH=/
+```
+
+Supabase의 publishable 키(또는 레거시 anon 키)만 사용합니다. service_role 키, sb_secret_ 키, 데이터베이스 비밀번호를 넣으면 안 됩니다. 알려진 비밀키는 빌드 설정에서도 거부합니다. 공개 키는 브라우저에 포함되는 값이며, 실제 보안은 데이터베이스 RLS와 사용자 인증으로 강제합니다.
+
+설정 후 개발 서버를 재시작합니다.
+
+```bash
+npm run dev
+```
+
+연결 정보가 비어 있으면 데모 모드가 됩니다. 온라인으로 배포했는데 데모 배너가 보이면 URL과 키, 재빌드 여부를 확인하세요. `dev:demo` 명령은 연결 설정이 있어도 명시적으로 데모 모드를 켭니다.
+
+### 첫 관리자 만들기
+
+1. 앱의 `계정 만들기`로 본인 계정을 생성합니다.
+2. 이메일 인증을 완료합니다. 이메일 링크는 요청한 브라우저에서 여세요(PKCE 사용).
+3. Supabase SQL Editor에서 아래를 **자신의 팀 이름과 가입 이메일로 바꾸어** 실행합니다.
+
+```sql
+select public.admin_create_team('우리 오케스트라', 'YOUR-EMAIL@example.com');
+```
+
+4. 앱에서 `초대 새로고침` 또는 다시 로그인합니다.
+5. `팀 설정 → 팀·권한`에서 다른 사람의 이메일과 권한을 등록합니다.
+
+초대 등록은 데이터베이스에 기록만 만들며 메일을 자동 발송하지 않습니다. 사이트 주소를 상대에게 직접 전달하세요. 상대가 같은 이메일로 가입하고 인증한 뒤 `초대 수락`을 누르면 됩니다. 일반 로그인·인증 메일은 사용자가 해당 기능을 실행할 때 Supabase Auth가 발송합니다. 실제 운영에 앞서 Supabase 메일 발송 설정과 제한을 확인하세요.
+
+권한:
+
+| 권한 | 기능 |
+|---|---|
+| 관리자 | 모든 배치, 팀 사용자·권한, 악기·파트 관리 |
+| 편집자 | 배치 생성·편집·복사, 자신이 만든 배치 삭제 |
+| 열람자 | 조회·파일 내보내기·인쇄 |
+
+가입만 한 사용자와 다른 팀 사용자는 팀 데이터에 접근할 수 없습니다. 화면뿐 아니라 SQL RLS가 권한을 제한합니다. 마지막 관리자의 강등·제거는 차단합니다.
+
+## 4. GitHub Pages 배포
+
+배포는 **수동 실행**입니다. 코드를 push하는 것만으로 사이트가 공개되지는 않습니다.
+
+1. GitHub 저장소에 이 폴더의 소스를 올립니다. `node_modules`, 실제 `.env.local`, 개인 데이터는 올리지 마세요.
+2. 기본 브랜치를 `main`으로 사용하거나 워크플로의 브랜치 이름을 수정합니다.
+3. 저장소 Settings → Pages → Build and deployment의 Source를 GitHub Actions로 선택합니다.
+4. 온라인 모드라면 Settings → Secrets and variables → Actions → Variables에 다음 저장소 변수를 등록합니다.
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+5. Actions → Deploy GitHub Pages → Run workflow를 누릅니다.
+   - demo=true: 가상 데이터 데모
+   - demo=false: Supabase 온라인 모드. URL과 키가 없으면 배포 빌드를 중단합니다.
+6. 워크플로가 알려주는 주소로 접속합니다. 하위 경로는 GitHub Pages 설정에서 자동으로 반영합니다.
+7. 온라인 모드에서는 해당 주소를 Supabase Redirect URLs에 등록합니다.
+
+단일 화면 앱이므로 배치 선택에 별도 서버 경로가 필요 없습니다. 하위 주소로 잘못 들어온 경우 `404.html`이 기본 화면으로 돌려보냅니다. 사용자명.github.io 저장소와 사용자 지정 도메인은 Pages가 반환하는 기본 경로를 사용합니다.
+
+GitHub Pages의 사이트 파일과 로그인 화면은 공개될 수 있습니다. 팀의 배치 정보는 로그인과 RLS로 제한합니다. 코드 저장소 비공개 여부와 웹사이트 공개 범위는 별개입니다.
+
+## 5. 저장과 충돌
+
+- 저장은 수동입니다. 저장하지 않은 변경 표시와 페이지 이탈 경고가 있습니다.
+- 템플릿을 새 일정으로 복사하면 독립 데이터와 새로운 세트 ID를 생성합니다.
+- 동시에 같은 배치를 수정하면 서버 version을 비교합니다. 뒤늦은 저장은 조용히 덮어쓰지 않고 충돌 안내를 표시합니다.
+- 충돌 시 JSON으로 내 작업을 보관하거나, 최신 배치를 불러오거나, 확인 후 현재 내용으로 덮어쓸 수 있습니다.
+- 네트워크 오류 후 편집 내용은 화면에 남고 재시도할 수 있습니다. 새로고침 전에는 JSON으로 보관하세요.
+- 편집기에서 다른 배치를 연 뒤 늦게 도착한 저장 응답은 새 배치의 상태를 바꾸지 않습니다.
+- 실시간 동시 편집·자동 병합·오프라인 온라인 동기화는 지원하지 않습니다.
+
+## 6. 확인 명령
+
+```bash
+npm run typecheck
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+Linux 브라우저 시스템 라이브러리가 없는 경우 `npx playwright install --with-deps chromium`을 사용하세요. 별도 Chromium 실행 파일이 있다면 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`로 지정할 수 있습니다.
+
+단위 테스트에는 계산·JSON 검증·좌표·편집 상태·저장 실패·충돌을 포함합니다. 데이터베이스 테스트는 PGlite에 실제 마이그레이션을 적용하고 Supabase auth 역할을 모사해 RLS를 검증합니다. **실제 Supabase 프로젝트와 Auth 메일·PostgREST 연동을 끝까지 검증한 것과는 구분**해야 합니다. 브라우저 테스트는 데스크톱·모바일 뷰포트에서 데모를 검증합니다.
+
+## 7. 인계 파일
+
+- `WORK_LOG.md`: 변경 내용, 검증 결과, 남은 외부 설정
+- `src/domain`: 기존 세트·수량·좌표·파일 형식 로직
+- `src/state`: 편집 이력·저장 상태
+- `src/data`: 데모·Supabase 저장소
+- `src/app`, `src/components`: 화면·무대·설정
+- `supabase/migrations`: 데이터 구조·RLS
+- `.github/workflows`: 검사 및 수동 배포
+
+## 참고 공식 문서
+
+- [Vite GitHub Pages 배포](https://vite.dev/guide/static-deploy.html)
+- [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)
+- [React Konva 드래그](https://konvajs.org/docs/react/Drag_And_Drop.html)
