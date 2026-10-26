@@ -4,7 +4,7 @@
  * 화면 크기·확대 배율과 무관하게 같은 배치 관계가 복원된다.
  */
 
-export type SetKind = 'stand_2chairs' | 'stand_1chair' | 'stand_only' | 'chair_only' | 'bench';
+export type SetKind = 'stand_2chairs' | 'stand_1chair' | 'stand_only' | 'chair_only' | 'bench' | 'object';
 
 export const SET_KINDS: readonly SetKind[] = [
   'stand_2chairs',
@@ -12,6 +12,7 @@ export const SET_KINDS: readonly SetKind[] = [
   'stand_only',
   'chair_only',
   'bench',
+  'object',
 ] as const;
 
 export type Role = 'admin' | 'editor' | 'viewer';
@@ -28,6 +29,10 @@ export interface StageItem {
   rotation: number;
   /** 장의자 길이(논리 단위). 장의자에만 사용, 수량에는 영향 없음 */
   benchLength?: number;
+  /** 준비 물품 집계에서 제외되는 물체의 표시 이름과 안내도 크기 */
+  objectLabel?: string;
+  objectWidth?: number;
+  objectHeight?: number;
   /** null = 미지정/공용 */
   instrumentId: string | null;
   partId: string | null;

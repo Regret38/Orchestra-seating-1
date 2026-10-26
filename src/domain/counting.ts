@@ -45,6 +45,9 @@ export function computeCounts(items: StageItem[], spares: Spares, catalog: Catal
     placed.benches += def.counts.benches;
     bySetKind[item.kind] += 1;
 
+    // 공간 표시용 물체는 물품 집계·악기별 표에서 제외한다.
+    if (item.kind === 'object') continue;
+
     const label = resolveItemLabel(item, catalog);
     let g = groups.get(label.key);
     if (!g) {

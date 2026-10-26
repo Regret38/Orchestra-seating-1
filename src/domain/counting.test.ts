@@ -25,13 +25,13 @@ function withKinds(kinds: SetKind[], instrumentId: string | null = null, partId:
 }
 
 describe('수량 자동 집계', () => {
-  it('5종 세트를 1개씩 추가하면 보면대 3, 일반 의자 4, 장의자 1', () => {
+  it('6종 세트를 1개씩 추가하면 보면대 3, 일반 의자 4, 장의자 1', () => {
     const d = withKinds([...SET_KINDS]);
     const c = computeCounts(d.items, d.spares, catalog);
     expect(c.placed).toEqual({ stands: 3, chairs: 4, benches: 1 });
     expect(c.total).toEqual({ stands: 3, chairs: 4, benches: 1 });
-    expect(c.bySetKind).toEqual({ stand_2chairs: 1, stand_1chair: 1, stand_only: 1, chair_only: 1, bench: 1 });
-    expect(c.setCount).toBe(5);
+    expect(c.bySetKind).toEqual({ stand_2chairs: 1, stand_1chair: 1, stand_only: 1, chair_only: 1, bench: 1, object: 1 });
+    expect(c.setCount).toBe(6);
   });
 
   it('빈 배치는 모두 0', () => {

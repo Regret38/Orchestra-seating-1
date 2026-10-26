@@ -52,6 +52,12 @@ export const SET_DEFINITIONS: Record<SetKind, SetDefinition> = {
     shortLabel: '장의자',
     counts: { stands: 0, chairs: 0, benches: 1 },
   },
+  object: {
+    kind: 'object',
+    label: '기타 물체 (수량 제외)',
+    shortLabel: '기타 물체',
+    counts: { stands: 0, chairs: 0, benches: 0 },
+  },
 };
 
 // ---- 그림 치수(논리 단위). 축척 도면이 아닌 안내도 기준 ----
@@ -62,6 +68,15 @@ export const BENCH_DEPTH = 44;
 export const BENCH_DEFAULT_LENGTH = 150;
 export const BENCH_MIN_LENGTH = 70;
 export const BENCH_MAX_LENGTH = 600;
+export const OBJECT_DEFAULT_WIDTH = 160;
+export const OBJECT_DEFAULT_HEIGHT = 100;
+export const OBJECT_MIN_SIZE = 30;
+export const OBJECT_MAX_SIZE = 1000;
+
+export function clampObjectSize(value: number | undefined, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(OBJECT_MAX_SIZE, Math.max(OBJECT_MIN_SIZE, Math.round(value))) : fallback;
+}
 
 export interface SetGeometry {
   /** 세트 중심 기준 로컬 좌표의 의자 사각형 (y+ = 무대 앞) */
@@ -69,6 +84,7 @@ export interface SetGeometry {
   /** 보면대 막대 */
   stands: Rect[];
   bench: Rect | null;
+  object?: Rect;
   /** 회전 전 외곽 크기 */
   footprint: { w: number; h: number };
 }
@@ -85,8 +101,13 @@ export function clampBenchLength(len: number | undefined): number {
   return Math.min(BENCH_MAX_LENGTH, Math.max(BENCH_MIN_LENGTH, Math.round(len)));
 }
 
-export function getSetGeometry(kind: SetKind, benchLength?: number): SetGeometry {
+export function getSetGeometry(kind: SetKind, benchLength?: number, objectWidth?: number, objectHeight?: number): SetGeometry {
   switch (kind) {
+    case 'object': {
+      const w = clampObjectSize(objectWidth, OBJECT_DEFAULT_WIDTH);
+      const h = clampObjectSize(objectHeight, OBJECT_DEFAULT_HEIGHT);
+      return { chairs: [], stands: [], bench: null, object: { x: -w / 2, y: -h / 2, w, h }, footprint: { w, h } };
+    }
     case 'stand_2chairs':
       return {
         chairs: [chairAt(-26, -16), chairAt(26, -16)],
@@ -118,8 +139,8 @@ export function getSetGeometry(kind: SetKind, benchLength?: number): SetGeometry
 }
 
 /** 회전을 반영한 축 정렬 외곽 상자 (논리 좌표) */
-export function itemBounds(item: Pick<StageItem, 'kind' | 'x' | 'y' | 'rotation' | 'benchLength'>): Rect {
-  const { w, h } = getSetGeometry(item.kind, item.benchLength).footprint;
+export function itemBounds(item: Pick<StageItem, 'kind' | 'x' | 'y' | 'rotation' | 'benchLength' | 'objectWidth' | 'objectHeight'>): Rect {
+  const { w, h } = getSetGeometry(item.kind, item.benchLength, item.objectWidth, item.objectHeight).footprint;
   const rad = (item.rotation * Math.PI) / 180;
   const cos = Math.abs(Math.cos(rad));
   const sin = Math.abs(Math.sin(rad));

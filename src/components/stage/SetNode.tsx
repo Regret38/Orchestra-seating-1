@@ -38,7 +38,7 @@ export interface SetNodeProps {
  */
 export function SetNode(props: SetNodeProps) {
   const { item, label, selected, scale, labelFontSize } = props;
-  const g = getSetGeometry(item.kind, item.benchLength);
+  const g = getSetGeometry(item.kind, item.benchLength, item.objectWidth, item.objectHeight);
   const fill = tint(label.color, 0.72);
   const stroke = label.color;
   const px = 1 / Math.max(scale, 0.01); // 화면 1px 에 해당하는 논리 길이
@@ -66,6 +66,7 @@ export function SetNode(props: SetNodeProps) {
       onDragEnd={props.onDragEnd}
     >
       <Group rotation={item.rotation}>
+        {g.object && <Rect x={g.object.x} y={g.object.y} width={g.object.w} height={g.object.h} fill="#e7e5e4" stroke="#78716c" strokeWidth={2} dash={[8, 5]} cornerRadius={5}/>}
         {/* 터치하기 쉽도록 외곽 전체를 투명 영역으로 */}
         <Rect
           x={-g.footprint.w / 2 - 4}

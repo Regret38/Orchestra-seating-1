@@ -6,3 +6,5 @@
 @media print{@page{size:A4 landscape;margin:12mm}body{background:#fff;color:#111;font-size:10px}.app-shell>*{display:none!important}.app-shell>.print-sheet{display:block!important}.print-sheet h1{font-size:21px;margin:0 0 4px}.print-sheet p{font-size:10px;margin:0 0 8px}.print-sheet img{display:block;max-width:100%;max-height:120mm;object-fit:contain;margin:0 auto 8px}.print-sheet h2{font-size:14px;margin:12px 0 2px}.print-sheet .count-cards{padding:5px 0;gap:12px;break-inside:avoid}.print-sheet .count-cards>div{padding:7px;print-color-adjust:exact;-webkit-print-color-adjust:exact}.print-sheet .count-cards strong{font-size:22px}.print-sheet .group-table{font-size:9px}.print-sheet tr{break-inside:avoid}.print-sheet .group-table td{padding:4px}.print-sheet .group-table i{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
 
 @media(max-width:760px){.set-picker,.add-fields{flex:0 0 100%}}
+
+@media(max-width:760px){.set-button svg{width:26px;height:24px}.set-button span{font-size:8px}}

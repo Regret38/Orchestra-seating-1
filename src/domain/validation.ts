@@ -1,4 +1,4 @@
-import { BENCH_MAX_LENGTH, BENCH_MIN_LENGTH, SET_DEFINITIONS, normalizeRotation } from './sets';
+import { BENCH_MAX_LENGTH, BENCH_MIN_LENGTH, SET_DEFINITIONS, normalizeRotation, OBJECT_DEFAULT_WIDTH, OBJECT_DEFAULT_HEIGHT, OBJECT_MIN_SIZE, OBJECT_MAX_SIZE } from './sets';
 import { DEFAULT_STAGE, emptySpares } from './layoutOps';
 import type { CatalogIndex } from './labels';
 import { SET_KINDS, type LayoutData, type LayoutKind, type SetKind, type StageItem } from './types';
@@ -102,6 +102,14 @@ export function validateLayoutData(raw: unknown, where = 'data'): ValidationResu
         if (!isNum(it[k]) || Math.abs(it[k] as number) > COORD_LIMIT) push(`${p}.${k}: ${n}번째 세트의 위치(${k})는 ±${COORD_LIMIT} 이내의 숫자여야 합니다.`);
       }
       if (it.rotation !== undefined && !isNum(it.rotation)) push(`${p}.rotation: ${n}번째 세트의 회전값은 숫자여야 합니다.`);
+      if (it.objectLabel !== undefined && (typeof it.objectLabel !== 'string' || it.objectLabel.length > 40)) {
+        push(`${p}.objectLabel: 물체 이름은 40자 이하 문자여야 합니다.`);
+      }
+      for (const key of ['objectWidth', 'objectHeight'] as const) {
+        if (it[key] !== undefined && (!isNum(it[key]) || it[key] < OBJECT_MIN_SIZE || it[key] > OBJECT_MAX_SIZE)) {
+          push(`${p}.${key}: 물체 크기는 ${OBJECT_MIN_SIZE}~${OBJECT_MAX_SIZE} 사이의 숫자여야 합니다.`);
+        }
+      }
       if (it.benchLength !== undefined && (!isNum(it.benchLength) || it.benchLength < BENCH_MIN_LENGTH || it.benchLength > BENCH_MAX_LENGTH)) {
         push(`${p}.benchLength: ${n}번째 세트의 장의자 길이는 ${BENCH_MIN_LENGTH}~${BENCH_MAX_LENGTH} 사이의 숫자여야 합니다.`);
       }
@@ -138,6 +146,11 @@ export function validateLayoutData(raw: unknown, where = 'data'): ValidationResu
         partId: instrumentId && typeof it.partId === 'string' ? it.partId : null,
       };
       if (item.kind === 'bench') item.benchLength = isNum(it.benchLength) ? it.benchLength : 150;
+      if (item.kind === 'object') {
+        item.objectLabel = typeof it.objectLabel === 'string' && it.objectLabel.trim() ? it.objectLabel.trim() : '기타 물체';
+        item.objectWidth = isNum(it.objectWidth) ? it.objectWidth : OBJECT_DEFAULT_WIDTH;
+        item.objectHeight = isNum(it.objectHeight) ? it.objectHeight : OBJECT_DEFAULT_HEIGHT;
+      }
       if (typeof it.customLabel === 'string' && it.customLabel.trim()) item.customLabel = it.customLabel.trim();
       if (snapshot && (snapshot.instrument || snapshot.part)) item.labelSnapshot = snapshot;
       items.push(item);

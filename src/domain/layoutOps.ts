@@ -1,5 +1,5 @@
 import { newId } from './id';
-import { BENCH_DEFAULT_LENGTH, clampBenchLength, normalizeRotation } from './sets';
+import { BENCH_DEFAULT_LENGTH, clampBenchLength, normalizeRotation, clampObjectSize, OBJECT_DEFAULT_WIDTH, OBJECT_DEFAULT_HEIGHT } from './sets';
 import type { LayoutData, SetKind, Spares, StageItem, StageSize } from './types';
 
 /** 무대 논리 크기 (단위: 안내도 단위, 실제 cm 아님) */
@@ -47,6 +47,7 @@ export interface NewItemInput {
   partId: string | null;
   customLabel?: string;
   labelSnapshot?: StageItem['labelSnapshot'];
+  objectLabel?: string;
 }
 
 export function makeItem(input: NewItemInput, x: number, y: number, rotation = 0): StageItem {
@@ -60,6 +61,11 @@ export function makeItem(input: NewItemInput, x: number, y: number, rotation = 0
     partId: input.instrumentId ? input.partId : null,
   };
   if (input.kind === 'bench') item.benchLength = BENCH_DEFAULT_LENGTH;
+  if (input.kind === 'object') {
+    item.objectLabel = input.objectLabel?.trim().slice(0, 40) || '기타 물체';
+    item.objectWidth = OBJECT_DEFAULT_WIDTH;
+    item.objectHeight = OBJECT_DEFAULT_HEIGHT;
+  }
   if (input.customLabel?.trim()) item.customLabel = input.customLabel.trim();
   if (input.labelSnapshot) item.labelSnapshot = input.labelSnapshot;
   return item;
@@ -78,6 +84,15 @@ export function updateItem(data: LayoutData, id: string, patch: Partial<Omit<Sta
     if (patch.rotation !== undefined) next.rotation = normalizeRotation(patch.rotation);
     if (next.kind === 'bench') next.benchLength = clampBenchLength(next.benchLength);
     else delete next.benchLength;
+    if (next.kind === 'object') {
+      next.objectLabel = (next.objectLabel ?? '기타 물체').slice(0, 40);
+      next.objectWidth = clampObjectSize(next.objectWidth, OBJECT_DEFAULT_WIDTH);
+      next.objectHeight = clampObjectSize(next.objectHeight, OBJECT_DEFAULT_HEIGHT);
+    } else {
+      delete next.objectLabel;
+      delete next.objectWidth;
+      delete next.objectHeight;
+    }
     if (!next.instrumentId) {
       next.partId = null;
       delete next.labelSnapshot;

@@ -66,6 +66,9 @@ export function SetKindIcon({ kind, size = 40 }: { kind: SetKind; size?: number 
   const stand = (x: number, y: number) => <rect key={`s${x}`} x={x} y={y} width="16" height="3.5" rx="1" fill="#1e293b" />;
   let content: ReactNode;
   switch (kind) {
+    case 'object':
+      content = <rect x="4" y="5" width="28" height="22" rx="3" fill="#e7e5e4" stroke="#78716c" strokeWidth="1.5" strokeDasharray="3 2"/>;
+      break;
     case 'stand_2chairs':
       content = [chair(5, 6), chair(19, 6), stand(12, 23)];
       break;

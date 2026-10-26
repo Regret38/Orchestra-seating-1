@@ -32,6 +32,10 @@ export interface ResolvedLabel {
 }
 
 export function resolveItemLabel(item: StageItem, catalog: CatalogIndex): ResolvedLabel {
+  if (item.kind === 'object') {
+    const name = item.objectLabel?.trim() || '기타 물체';
+    return { key: 'object', display: name, instrumentName: name, partName: null, color: '#78716c', sortKey: [Number.MAX_SAFE_INTEGER, 0, name] };
+  }
   if (!item.instrumentId) {
     return {
       key: 'unassigned',
