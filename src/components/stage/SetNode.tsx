@@ -96,6 +96,12 @@ export function SetNode(props: SetNodeProps) {
             <Rect x={g.bench.x} y={g.bench.y} width={g.bench.w} height={8} cornerRadius={[6, 6, 0, 0]} fill={stroke} />
           </>
         )}
+        {g.tallChair && <Group>
+          <Line points={[-18, -6, -26, 36]} stroke={stroke} strokeWidth={4}/>
+          <Line points={[18, -6, 26, 36]} stroke={stroke} strokeWidth={4}/>
+          <Line points={[-23, 20, 23, 20]} stroke={stroke} strokeWidth={4}/>
+          <Circle x={0} y={-14} radius={24} fill={fill} stroke={stroke} strokeWidth={2}/>
+        </Group>}
         {g.chairs.map((c, i) => (
           <Group key={i}>
             <Rect x={c.x} y={c.y} width={c.w} height={c.h} cornerRadius={6} fill={fill} stroke={stroke} strokeWidth={2} />

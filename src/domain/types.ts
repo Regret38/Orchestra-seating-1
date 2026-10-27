@@ -4,7 +4,7 @@
  * 화면 크기·확대 배율과 무관하게 같은 배치 관계가 복원된다.
  */
 
-export type SetKind = 'stand_2chairs' | 'stand_1chair' | 'stand_only' | 'chair_only' | 'bench' | 'bench_1stand' | 'bench_2stands' | 'object';
+export type SetKind = 'stand_2chairs' | 'stand_1chair' | 'stand_only' | 'chair_only' | 'bench' | 'tallchair_only' | 'tallchair_1stand' | 'tallchair_2stands' | 'object';
 
 export const SET_KINDS: readonly SetKind[] = [
   'stand_2chairs',
@@ -12,8 +12,9 @@ export const SET_KINDS: readonly SetKind[] = [
   'stand_only',
   'chair_only',
   'bench',
-  'bench_1stand',
-  'bench_2stands',
+  'tallchair_only',
+  'tallchair_1stand',
+  'tallchair_2stands',
   'object',
 ] as const;
 
@@ -48,6 +49,8 @@ export interface StageItem {
 }
 
 export interface Spares {
+  /** 기존 데이터에서는 생략. 미지정은 0으로 처리. */
+  tallChairs?: number;
   stands: number;
   chairs: number;
   benches: number;

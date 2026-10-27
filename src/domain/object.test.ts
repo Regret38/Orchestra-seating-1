@@ -32,7 +32,7 @@ describe('수량에서 제외되는 기타 물체', () => {
   it('물체만 놓으면 물품 수량과 악기별 표는 비어 있고 이름은 독립적으로 표시된다', () => {
     const item = makeItem({ kind: 'object', instrumentId: null, partId: null, objectLabel: '통로' }, 100, 100);
     const counts = computeCounts([item], createEmptyLayoutData().spares, catalog);
-    expect(counts.total).toEqual({ stands: 0, chairs: 0, benches: 0 });
+    expect(counts.total).toEqual({ stands: 0, chairs: 0, benches: 0, tallChairs: 0 });
     expect(counts.byGroup).toEqual([]);
     expect(resolveItemLabel(item, catalog).display).toBe('통로');
   });
@@ -42,7 +42,7 @@ describe('수량에서 제외되는 기타 물체', () => {
     const item = makeItem({ kind: 'stand_2chairs', instrumentId: null, partId: null }, 100, 100);
     d = addItem(d, item);
     d = changeItemKind(d, item.id, 'object');
-    expect(computeCounts(d.items, d.spares, catalog).placed).toEqual({ stands: 0, chairs: 0, benches: 0 });
+    expect(computeCounts(d.items, d.spares, catalog).placed).toEqual({ stands: 0, chairs: 0, benches: 0, tallChairs: 0 });
     expect(d.items[0]).toMatchObject({ objectWidth: 160, objectHeight: 100 });
     d = changeItemKind(d, item.id, 'bench');
     expect(computeCounts(d.items, d.spares, catalog).placed.benches).toBe(1);

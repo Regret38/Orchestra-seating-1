@@ -82,16 +82,17 @@ export function SetKindIcon({ kind, size = 40 }: { kind: SetKind; size?: number 
       content = [chair(12, 10)];
       break;
     case 'bench':
-    case 'bench_1stand':
-    case 'bench_2stands':
-      content = (
-        <g>
-          <rect x="3" y="10" width="30" height="12" rx="2" fill="#dbeafe" stroke="#2563eb" strokeWidth="1.5" />
-          <rect x="3" y="10" width="30" height="3" rx="1" fill="#2563eb" />
-          {kind === 'bench_1stand' && stand(10, 27)}
-          {kind === 'bench_2stands' && <>{stand(1, 27)}{stand(19, 27)}</>}
-        </g>
-      );
+      content = <g><rect x="3" y="10" width="30" height="12" rx="2" fill="#dbeafe" stroke="#2563eb" strokeWidth="1.5"/><rect x="3" y="10" width="30" height="3" rx="1" fill="#2563eb"/></g>;
+      break;
+    case 'tallchair_only':
+    case 'tallchair_1stand':
+    case 'tallchair_2stands':
+      content = <g>
+        <path d="M13 10 10 24M23 10l3 14M11 20h14" stroke="#7c3aed" strokeWidth="2" fill="none"/>
+        <ellipse cx="18" cy="9" rx="9" ry="6" fill="#ede9fe" stroke="#7c3aed" strokeWidth="1.5"/>
+        {kind === 'tallchair_1stand' && stand(10, 28)}
+        {kind === 'tallchair_2stands' && <>{stand(1, 28)}{stand(19, 28)}</>}
+      </g>;
       break;
   }
   return (

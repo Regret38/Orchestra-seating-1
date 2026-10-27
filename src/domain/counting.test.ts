@@ -25,18 +25,18 @@ function withKinds(kinds: SetKind[], instrumentId: string | null = null, partId:
 }
 
 describe('수량 자동 집계', () => {
-  it('8종 세트를 1개씩 추가하면 보면대 6, 일반 의자 4, 장의자 3', () => {
+  it('9종 세트를 1개씩 추가하면 보면대 6, 일반 의자 4, 장의자 1, 키큰의자 3', () => {
     const d = withKinds([...SET_KINDS]);
     const c = computeCounts(d.items, d.spares, catalog);
-    expect(c.placed).toEqual({ stands: 6, chairs: 4, benches: 3 });
-    expect(c.total).toEqual({ stands: 6, chairs: 4, benches: 3 });
-    expect(c.bySetKind).toEqual({ stand_2chairs: 1, stand_1chair: 1, stand_only: 1, chair_only: 1, bench: 1, bench_1stand: 1, bench_2stands: 1, object: 1 });
-    expect(c.setCount).toBe(8);
+    expect(c.placed).toEqual({ stands: 6, chairs: 4, benches: 1, tallChairs: 3 });
+    expect(c.total).toEqual({ stands: 6, chairs: 4, benches: 1, tallChairs: 3 });
+    expect(c.bySetKind).toEqual({ stand_2chairs: 1, stand_1chair: 1, stand_only: 1, chair_only: 1, bench: 1, tallchair_only: 1, tallchair_1stand: 1, tallchair_2stands: 1, object: 1 });
+    expect(c.setCount).toBe(9);
   });
 
   it('빈 배치는 모두 0', () => {
     const d = createEmptyLayoutData();
-    expect(computeCounts(d.items, d.spares, catalog).total).toEqual({ stands: 0, chairs: 0, benches: 0 });
+    expect(computeCounts(d.items, d.spares, catalog).total).toEqual({ stands: 0, chairs: 0, benches: 0, tallChairs: 0 });
   });
 
   it('복제하면 해당 세트 구성만큼 늘어난다', () => {
@@ -44,7 +44,7 @@ describe('수량 자동 집계', () => {
     d = duplicateItem(d, d.items[0].id).data;
     d = duplicateItem(d, d.items[0].id).data;
     const c = computeCounts(d.items, d.spares, catalog);
-    expect(c.placed).toEqual({ stands: 3, chairs: 6, benches: 0 });
+    expect(c.placed).toEqual({ stands: 3, chairs: 6, benches: 0, tallChairs: 0 });
     expect(new Set(d.items.map((i) => i.id)).size).toBe(3);
   });
 
@@ -54,19 +54,19 @@ describe('수량 자동 집계', () => {
     d = removeItem(d, bench.id);
     const chairOnly = d.items.find((i) => i.kind === 'chair_only')!;
     d = removeItem(d, chairOnly.id);
-    expect(computeCounts(d.items, d.spares, catalog).placed).toEqual({ stands: 6, chairs: 3, benches: 2 });
+    expect(computeCounts(d.items, d.spares, catalog).placed).toEqual({ stands: 6, chairs: 3, benches: 0, tallChairs: 3 });
   });
 
   it('세트 종류를 바꾸면 즉시 새 구성으로 집계된다', () => {
     let d = withKinds(['stand_2chairs', 'stand_2chairs']);
     d = changeItemKind(d, d.items[0].id, 'bench');
     let c = computeCounts(d.items, d.spares, catalog);
-    expect(c.placed).toEqual({ stands: 1, chairs: 2, benches: 1 });
+    expect(c.placed).toEqual({ stands: 1, chairs: 2, benches: 1, tallChairs: 0 });
     expect(d.items[0].benchLength).toBeGreaterThan(0);
 
     d = changeItemKind(d, d.items[0].id, 'stand_only');
     c = computeCounts(d.items, d.spares, catalog);
-    expect(c.placed).toEqual({ stands: 2, chairs: 2, benches: 0 });
+    expect(c.placed).toEqual({ stands: 2, chairs: 2, benches: 0, tallChairs: 0 });
     expect(d.items[0].benchLength).toBeUndefined();
   });
 
@@ -87,16 +87,16 @@ describe('수량 자동 집계', () => {
     let d = withKinds(['bench']);
     d = updateItem(d, d.items[0].id, { benchLength: 600 });
     const c = computeCounts(d.items, d.spares, catalog);
-    expect(c.placed).toEqual({ stands: 0, chairs: 0, benches: 1 });
+    expect(c.placed).toEqual({ stands: 0, chairs: 0, benches: 1, tallChairs: 0 });
   });
 
   it('예비 수량은 무대 객체를 만들지 않고 최종 준비 수량에만 더해진다', () => {
     let d = withKinds(Array(9).fill('stand_2chairs').concat(Array(9).fill('stand_1chair'), ['bench']) as SetKind[]);
     d = setSpares(d, { stands: 2, chairs: 2, benches: 0 });
     const c = computeCounts(d.items, d.spares, catalog);
-    expect(c.placed).toEqual({ stands: 18, chairs: 27, benches: 1 });
-    expect(c.spares).toEqual({ stands: 2, chairs: 2, benches: 0 });
-    expect(c.total).toEqual({ stands: 20, chairs: 29, benches: 1 });
+    expect(c.placed).toEqual({ stands: 18, chairs: 27, benches: 1, tallChairs: 0 });
+    expect(c.spares).toEqual({ stands: 2, chairs: 2, benches: 0, tallChairs: 0 });
+    expect(c.total).toEqual({ stands: 20, chairs: 29, benches: 1, tallChairs: 0 });
     expect(d.items).toHaveLength(19);
   });
 

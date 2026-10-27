@@ -1,6 +1,7 @@
 import type { SetKind, StageItem } from './types';
 
 export interface ItemCounts {
+  tallChairs: number;
   stands: number;
   chairs: number;
   benches: number;
@@ -26,40 +27,41 @@ export const SET_DEFINITIONS: Record<SetKind, SetDefinition> = {
     kind: 'stand_2chairs',
     label: '보면대 + 의자 2개',
     shortLabel: '보면대+의자2',
-    counts: { stands: 1, chairs: 2, benches: 0 },
+    counts: { tallChairs: 0, stands: 1, chairs: 2, benches: 0 },
   },
   stand_1chair: {
     kind: 'stand_1chair',
     label: '보면대 + 의자 1개',
     shortLabel: '보면대+의자1',
-    counts: { stands: 1, chairs: 1, benches: 0 },
+    counts: { tallChairs: 0, stands: 1, chairs: 1, benches: 0 },
   },
   stand_only: {
     kind: 'stand_only',
     label: '보면대만',
     shortLabel: '보면대만',
-    counts: { stands: 1, chairs: 0, benches: 0 },
+    counts: { tallChairs: 0, stands: 1, chairs: 0, benches: 0 },
   },
   chair_only: {
     kind: 'chair_only',
     label: '의자만',
     shortLabel: '의자만',
-    counts: { stands: 0, chairs: 1, benches: 0 },
+    counts: { tallChairs: 0, stands: 0, chairs: 1, benches: 0 },
   },
   bench: {
     kind: 'bench',
     label: '장의자',
     shortLabel: '장의자',
-    counts: { stands: 0, chairs: 0, benches: 1 },
+    counts: { tallChairs: 0, stands: 0, chairs: 0, benches: 1 },
   },
   object: {
     kind: 'object',
     label: '기타 물체 (수량 제외)',
     shortLabel: '기타 물체',
-    counts: { stands: 0, chairs: 0, benches: 0 },
+    counts: { tallChairs: 0, stands: 0, chairs: 0, benches: 0 },
   },
-  bench_1stand: { kind: 'bench_1stand', label: '장의자 + 보면대 1개', shortLabel: '장의자+보면대1', counts: { stands: 1, chairs: 0, benches: 1 } },
-  bench_2stands: { kind: 'bench_2stands', label: '장의자 + 보면대 2개', shortLabel: '장의자+보면대2', counts: { stands: 2, chairs: 0, benches: 1 } },
+  tallchair_only: { kind: 'tallchair_only', label: '키큰의자', shortLabel: '키큰의자', counts: { tallChairs: 1, stands: 0, chairs: 0, benches: 0 } },
+  tallchair_1stand: { kind: 'tallchair_1stand', label: '키큰의자 + 보면대 1개', shortLabel: '키큰의자+보면대1', counts: { tallChairs: 1, stands: 1, chairs: 0, benches: 0 } },
+  tallchair_2stands: { kind: 'tallchair_2stands', label: '키큰의자 + 보면대 2개', shortLabel: '키큰의자+보면대2', counts: { tallChairs: 1, stands: 2, chairs: 0, benches: 0 } },
 };
 
 // ---- 그림 치수(논리 단위). 축척 도면이 아닌 안내도 기준 ----
@@ -70,7 +72,7 @@ export const BENCH_DEPTH = 44;
 export const BENCH_DEFAULT_LENGTH = 150;
 export const BENCH_MIN_LENGTH = 70;
 export const BENCH_MAX_LENGTH = 1200;
-export function isBenchKind(kind: SetKind): boolean { return kind === 'bench' || kind === 'bench_1stand' || kind === 'bench_2stands'; }
+export function isBenchKind(kind: SetKind): boolean { return kind === 'bench'; }
 export const OBJECT_DEFAULT_WIDTH = 160;
 export const OBJECT_DEFAULT_HEIGHT = 100;
 export const OBJECT_MIN_SIZE = 30;
@@ -87,6 +89,7 @@ export interface SetGeometry {
   /** 보면대 막대 */
   stands: Rect[];
   bench: Rect | null;
+  tallChair?: Rect;
   object?: Rect;
   /** 회전 전 외곽 크기 */
   footprint: { w: number; h: number };
@@ -129,16 +132,22 @@ export function getSetGeometry(kind: SetKind, benchLength?: number, objectWidth?
       return { chairs: [], stands: [standAt(0, 0)], bench: null, footprint: { w: 56, h: 32 } };
     case 'chair_only':
       return { chairs: [chairAt(0, 0)], stands: [], bench: null, footprint: { w: 48, h: 48 } };
-    case 'bench':
-    case 'bench_1stand':
-    case 'bench_2stands': {
-      const len = clampBenchLength(benchLength);
-      const stands = kind === 'bench_1stand' ? [standAt(0, 46)] : kind === 'bench_2stands' ? [standAt(-len / 4, 46), standAt(len / 4, 46)] : [];
+    case 'tallchair_only':
+    case 'tallchair_1stand':
+    case 'tallchair_2stands': {
+      const stands = kind === 'tallchair_1stand' ? [standAt(0, 35)] : kind === 'tallchair_2stands' ? [standAt(-30, 35), standAt(30, 35)] : [];
       return {
-        chairs: [],
-        stands,
+        chairs: [], stands, bench: null,
+        tallChair: { x: -24, y: -38, w: 48, h: 48 },
+        footprint: { w: kind === 'tallchair_2stands' ? 116 : 64, h: stands.length ? 104 : 88 },
+      };
+    }
+    case 'bench': {
+      const len = clampBenchLength(benchLength);
+      return {
+        chairs: [], stands: [],
         bench: { x: -len / 2, y: -BENCH_DEPTH / 2, w: len, h: BENCH_DEPTH },
-        footprint: { w: len + 4, h: stands.length ? 106 : BENCH_DEPTH + 4 },
+        footprint: { w: len + 4, h: BENCH_DEPTH + 4 },
       };
     }
   }

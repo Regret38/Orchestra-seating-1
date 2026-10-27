@@ -20,11 +20,11 @@ export interface CountSummary {
 }
 
 export function emptyCounts(): ItemCounts {
-  return { stands: 0, chairs: 0, benches: 0 };
+  return { stands: 0, chairs: 0, benches: 0, tallChairs: 0 };
 }
 
-function sanitizeSpare(n: number): number {
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+function sanitizeSpare(n: number | undefined): number {
+  return typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
 }
 
 /**
@@ -43,6 +43,7 @@ export function computeCounts(items: StageItem[], spares: Spares, catalog: Catal
     placed.stands += def.counts.stands;
     placed.chairs += def.counts.chairs;
     placed.benches += def.counts.benches;
+    placed.tallChairs += def.counts.tallChairs;
     bySetKind[item.kind] += 1;
 
     // 공간 표시용 물체는 물품 집계·악기별 표에서 제외한다.
@@ -66,12 +67,14 @@ export function computeCounts(items: StageItem[], spares: Spares, catalog: Catal
     g.stands += def.counts.stands;
     g.chairs += def.counts.chairs;
     g.benches += def.counts.benches;
+    g.tallChairs += def.counts.tallChairs;
   }
 
   const sp: ItemCounts = {
     stands: sanitizeSpare(spares.stands),
     chairs: sanitizeSpare(spares.chairs),
     benches: sanitizeSpare(spares.benches),
+    tallChairs: sanitizeSpare(spares.tallChairs),
   };
 
   const byGroup = [...groups.values()]
@@ -91,6 +94,7 @@ export function computeCounts(items: StageItem[], spares: Spares, catalog: Catal
       stands: placed.stands + sp.stands,
       chairs: placed.chairs + sp.chairs,
       benches: placed.benches + sp.benches,
+      tallChairs: placed.tallChairs + sp.tallChairs,
     },
     bySetKind,
     byGroup,

@@ -12,3 +12,7 @@
 .layout-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 32px 14px}.layout-tools span{font-size:11px;color:var(--muted);margin-right:12px}.layout-tools button{font-size:12px}.label-controls{padding:12px;background:#f0f3eb;border-radius:8px;grid-column:1/-1}.label-controls h3{margin:0 0 8px!important}.label-presets{display:flex;flex-wrap:wrap;gap:5px}.label-presets button{padding:7px 9px;font-size:11px}.label-presets button[aria-pressed=true]{background:var(--green);color:#fff}.label-controls p{margin:9px 0 0}.set-picker{flex-wrap:wrap}
 @media(max-width:760px){.layout-tools{margin:0 10px 12px}.layout-tools button{font-size:11px;padding:7px 9px}.layout-tools span{font-size:10px}.set-picker{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.label-controls .two-fields{margin-top:10px}}
 @media(max-width:760px){.side-panel .panel-body>fieldset{grid-template-columns:minmax(0,1fr)}.side-panel label{min-width:0}.side-panel input,.side-panel select{width:100%;min-width:0}}
+
+/* 일반 의자·장의자·키큰의자를 별도로 집계 */
+.count-cards,.spare-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.count-cards>div:nth-child(4){background:#f0eaf7}
+@media(max-width:760px){.set-picker{grid-template-columns:repeat(3,minmax(0,1fr))}}

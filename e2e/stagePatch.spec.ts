@@ -60,6 +60,7 @@ test('이름표 이동 모드와 정지에서 서로 다른 객체가 움직인�
 test('앞뒤 반전·5방향 이름표·출력 및 JSON 복원', async ({ page }) => {
   await blank(page);
   await page.getByRole('button', { name: '무대에 추가', exact: true }).click();
+  await page.getByLabel('세트 X 위치').fill('350');
   await page.getByLabel('세트 Y 위치').fill('300');
   await page.getByLabel('회전 각도').fill('30');
   for (const name of ['위쪽', '아래쪽', '왼쪽', '오른쪽', '가운데']) {
@@ -67,11 +68,11 @@ test('앞뒤 반전·5방향 이름표·출력 및 JSON 복원', async ({ page }
     await expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true');
   }
   await page.getByRole('button', { name: '위쪽', exact: true }).click();
-  await page.getByRole('button', { name: '무대 앞뒤 반전', exact: true }).click();
+  await page.getByRole('button', { name: '무대 앞뒤 반전 (180°)', exact: true }).click();
   await expect(page.locator('.layout-tools')).toContainText('무대 앞: 위쪽');
   const flipped = await data(page);
   expect(flipped.stage.frontAtTop).toBe(true);
-  expect(flipped.items[0]).toMatchObject({ y: 700, rotation: 150, labelPosition: 'bottom' });
+  expect(flipped.items[0]).toMatchObject({ x: 1250, y: 700, rotation: 210, labelPosition: 'bottom' });
   await page.getByRole('button', { name: '메모리에 저장', exact: true }).click();
   await page.getByRole('button', { name: '출력·내보내기' }).click();
   await expect(page.locator('.output-preview canvas')).toHaveCount(1);
@@ -84,7 +85,7 @@ test('앞뒤 반전·5방향 이름표·출력 및 JSON 복원', async ({ page }
   expect((await data(page)).items[0].labelPosition).toBe('bottom');
 });
 
-test('장의자 3종·1200 길이와 모든 악기 1~5 선택', async ({ page }) => {
+test('기존 장의자·키큰의자 3종과 모든 악기 1~5 선택', async ({ page }) => {
   await blank(page);
   const fields = page.locator('.add-fields');
   const inst = fields.getByLabel('악기', { exact: true });
@@ -97,16 +98,34 @@ test('장의자 3종·1200 길이와 모든 악기 1~5 선택', async ({ page })
   }
   await inst.selectOption({ label: '첼로' });
   await fields.getByLabel('파트', { exact: true }).selectOption({ label: '첼로 5' });
-  for (const name of ['장의자', '장의자+보면대1', '장의자+보면대2']) {
+  for (const name of ['장의자', '키큰의자', '키큰의자+보면대1', '키큰의자+보면대2']) {
     await page.getByRole('button', { name, exact: true }).click();
     await page.getByRole('button', { name: '무대에 추가', exact: true }).click();
-    await page.getByLabel('장의자 길이', { exact: true }).fill('1200');
-    await expect(page.getByLabel('장의자 길이', { exact: true })).toHaveValue('1200');
+    if (name === '장의자') {
+      await page.getByLabel('장의자 길이', { exact: true }).fill('1200');
+      await expect(page.getByLabel('장의자 길이', { exact: true })).toHaveValue('1200');
+    } else await expect(page.getByLabel('장의자 길이', { exact: true })).toHaveCount(0);
   }
   await page.getByRole('button', { name: '준비 수량', exact: true }).click();
   await expect(page.getByRole('complementary').getByTestId('total-stands')).toHaveText('3개');
   await expect(page.getByRole('complementary').getByTestId('total-chairs')).toHaveText('0개');
-  await expect(page.getByRole('complementary').getByTestId('total-benches')).toHaveText('3개');
+  await expect(page.getByRole('complementary').getByTestId('total-benches')).toHaveText('1개');
+  await expect(page.getByRole('complementary').getByTestId('total-tallChairs')).toHaveText('3개');
+  await page.getByLabel('예비 키큰의자', { exact: true }).fill('2');
+  await expect(page.getByRole('complementary').getByTestId('total-tallChairs')).toHaveText('5개');
   const saved = await data(page);
-  expect(saved.items.every((i: { benchLength: number }) => i.benchLength === 1200)).toBe(true);
+  expect(saved.items[0].benchLength).toBe(1200);
+  expect(saved.items.slice(1).every((i: { benchLength?: number }) => i.benchLength === undefined)).toBe(true);
+  expect(saved.spares.tallChairs).toBe(2);
+  await page.getByRole('button', { name: '출력·내보내기' }).click();
+  await expect(page.locator('.output-preview canvas')).toHaveCount(1);
+  await expect(page.getByRole('dialog').getByTestId('total-tallChairs')).toHaveText('5개');
+  await page.getByRole('button', { name: '닫기', exact: true }).click();
+  const legacy = structuredClone(saved);
+  legacy.items = saved.items.filter((i: { kind: string }) => i.kind !== 'tallchair_only').map((i: { kind: string }) => ({ ...i, kind: i.kind.replace('tallchair_', 'bench_') }));
+  const file = { format: 'orchestra-seating-layout', formatVersion: 1, layout: { name: '이전 세트 복원', kind: 'event', eventDate: null, data: legacy } };
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('input[type=file]').setInputFiles({ name: 'legacy.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(file)) });
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('이전 세트 복원');
+  expect((await data(page)).items.map((i: { kind: string }) => i.kind)).toEqual(['bench', 'tallchair_1stand', 'tallchair_2stands']);
 });

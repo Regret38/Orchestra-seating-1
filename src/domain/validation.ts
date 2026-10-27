@@ -70,7 +70,7 @@ export function validateLayoutData(raw: unknown, where = 'data'): ValidationResu
   if (raw.spares !== undefined) {
     if (!isObj(raw.spares)) push(`${where}.spares: 예비 수량 형식이 올바르지 않습니다.`);
     else {
-      for (const key of ['stands', 'chairs', 'benches'] as const) {
+      for (const key of ['stands', 'chairs', 'benches', 'tallChairs'] as const) {
         const v = raw.spares[key];
         if (v === undefined) continue;
         if (!isNum(v) || v < 0 || v > 9999 || !Number.isInteger(v)) {
@@ -95,12 +95,15 @@ export function validateLayoutData(raw: unknown, where = 'data'): ValidationResu
         push(`${p}: ${n}번째 세트가 객체 형식이 아닙니다.`);
         return;
       }
+      // 직전 패치에서 추가했던 두 장의자 조합은 키큰의자로 변경한다.
+      // 기존 단독 장의자(bench)는 그대로 유지한다.
+      const kind = it.kind === 'bench_1stand' ? 'tallchair_1stand' : it.kind === 'bench_2stands' ? 'tallchair_2stands' : it.kind;
       const before = errors.length;
       if (it.labelPosition !== undefined && ![...LABEL_POSITIONS, 'custom'].includes(it.labelPosition as never)) push(`${p}.labelPosition: 이름표 위치가 올바르지 않습니다.`);
       if (it.labelOffset !== undefined && (!isObj(it.labelOffset) || !isNum(it.labelOffset.x) || !isNum(it.labelOffset.y) || Math.abs(it.labelOffset.x) > LABEL_OFFSET_LIMIT || Math.abs(it.labelOffset.y) > LABEL_OFFSET_LIMIT)) push(`${p}.labelOffset: 이름표 위치는 ±${LABEL_OFFSET_LIMIT} 이내여야 합니다.`);
       if (typeof it.id !== 'string' || it.id.length < 1 || it.id.length > 100) push(`${p}.id: ${n}번째 세트의 ID가 없습니다.`);
       else if (ids.has(it.id)) push(`${p}.id: ${n}번째 세트의 ID가 중복됩니다(${it.id}).`);
-      if (typeof it.kind !== 'string' || !(SET_KINDS as readonly string[]).includes(it.kind)) {
+      if (typeof kind !== 'string' || !(SET_KINDS as readonly string[]).includes(kind)) {
         push(`${p}.kind: ${n}번째 세트의 종류 "${String(it.kind)}"를 알 수 없습니다. 가능한 값: ${kindList()}`);
       }
       for (const k of ['x', 'y'] as const) {
@@ -143,7 +146,7 @@ export function validateLayoutData(raw: unknown, where = 'data'): ValidationResu
       const instrumentId = typeof it.instrumentId === 'string' ? it.instrumentId : null;
       const item: StageItem = {
         id: it.id as string,
-        kind: it.kind as SetKind,
+        kind: kind as SetKind,
         x: it.x as number,
         y: it.y as number,
         rotation: normalizeRotation(isNum(it.rotation) ? it.rotation : 0),

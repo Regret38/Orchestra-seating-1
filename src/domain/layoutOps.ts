@@ -102,14 +102,14 @@ export function updateItem(data: LayoutData, id: string, patch: Partial<Omit<Sta
   return changed ? { ...data, items } : data;
 }
 
-/** 무대·지휘대·세트의 앞뒤를 함께 상하 반전한다. 글자는 반전하지 않는다. */
+/** 무대 중심을 기준으로 배치 전체를 180도 회전한다. 이름표 글자는 읽기 쉽게 바로 세운다. */
 export function flipStage(data: LayoutData): LayoutData {
   const stage = { ...data.stage };
   if (stage.frontAtTop) delete stage.frontAtTop; else stage.frontAtTop = true;
   return { ...data, stage, items: data.items.map(item => ({
-    ...item, y: data.stage.height - item.y, rotation: normalizeRotation(180 - item.rotation),
-    ...(item.labelPosition === 'top' ? { labelPosition: 'bottom' as const } : item.labelPosition === 'bottom' ? { labelPosition: 'top' as const } : {}),
-    ...(item.labelOffset ? { labelOffset: { x: item.labelOffset.x, y: -item.labelOffset.y } } : {}),
+    ...item, x: data.stage.width - item.x, y: data.stage.height - item.y, rotation: normalizeRotation(item.rotation + 180),
+    ...(item.labelPosition === 'top' ? { labelPosition: 'bottom' as const } : item.labelPosition === 'bottom' ? { labelPosition: 'top' as const } : item.labelPosition === 'left' ? { labelPosition: 'right' as const } : item.labelPosition === 'right' ? { labelPosition: 'left' as const } : {}),
+    ...(item.labelOffset ? { labelOffset: { x: -item.labelOffset.x, y: -item.labelOffset.y } } : {}),
   })) };
 }
 
@@ -139,6 +139,7 @@ export function setSpares(data: LayoutData, spares: Partial<Spares>): LayoutData
       stands: clean(spares.stands, data.spares.stands),
       chairs: clean(spares.chairs, data.spares.chairs),
       benches: clean(spares.benches, data.spares.benches),
+      ...(spares.tallChairs !== undefined || data.spares.tallChairs !== undefined ? { tallChairs: clean(spares.tallChairs, data.spares.tallChairs ?? 0) } : {}),
     },
   };
 }
