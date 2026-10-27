@@ -1,5 +1,5 @@
 import { newId } from './id';
-import { BENCH_DEFAULT_LENGTH, clampBenchLength, normalizeRotation, clampObjectSize, OBJECT_DEFAULT_WIDTH, OBJECT_DEFAULT_HEIGHT } from './sets';
+import { BENCH_DEFAULT_LENGTH, clampBenchLength, normalizeRotation, clampObjectSize, OBJECT_DEFAULT_WIDTH, OBJECT_DEFAULT_HEIGHT, isBenchKind } from './sets';
 import type { LayoutData, SetKind, Spares, StageItem, StageSize } from './types';
 
 /** 무대 논리 크기 (단위: 안내도 단위, 실제 cm 아님) */
@@ -17,7 +17,7 @@ export function createEmptyLayoutData(): LayoutData {
 
 /** 지휘대 위치(무대 앞 중앙) */
 export function podiumPoint(stage: StageSize): { x: number; y: number } {
-  return { x: stage.width / 2, y: stage.height - FRONT_BAND - 40 };
+  return { x: stage.width / 2, y: stage.frontAtTop ? FRONT_BAND + 40 : stage.height - FRONT_BAND - 40 };
 }
 
 /**
@@ -60,7 +60,7 @@ export function makeItem(input: NewItemInput, x: number, y: number, rotation = 0
     instrumentId: input.instrumentId,
     partId: input.instrumentId ? input.partId : null,
   };
-  if (input.kind === 'bench') item.benchLength = BENCH_DEFAULT_LENGTH;
+  if (isBenchKind(input.kind)) item.benchLength = BENCH_DEFAULT_LENGTH;
   if (input.kind === 'object') {
     item.objectLabel = input.objectLabel?.trim().slice(0, 40) || '기타 물체';
     item.objectWidth = OBJECT_DEFAULT_WIDTH;
@@ -82,7 +82,7 @@ export function updateItem(data: LayoutData, id: string, patch: Partial<Omit<Sta
     changed = true;
     const next: StageItem = { ...it, ...patch };
     if (patch.rotation !== undefined) next.rotation = normalizeRotation(patch.rotation);
-    if (next.kind === 'bench') next.benchLength = clampBenchLength(next.benchLength);
+    if (isBenchKind(next.kind)) next.benchLength = clampBenchLength(next.benchLength);
     else delete next.benchLength;
     if (next.kind === 'object') {
       next.objectLabel = (next.objectLabel ?? '기타 물체').slice(0, 40);
@@ -100,6 +100,17 @@ export function updateItem(data: LayoutData, id: string, patch: Partial<Omit<Sta
     return next;
   });
   return changed ? { ...data, items } : data;
+}
+
+/** 무대·지휘대·세트의 앞뒤를 함께 상하 반전한다. 글자는 반전하지 않는다. */
+export function flipStage(data: LayoutData): LayoutData {
+  const stage = { ...data.stage };
+  if (stage.frontAtTop) delete stage.frontAtTop; else stage.frontAtTop = true;
+  return { ...data, stage, items: data.items.map(item => ({
+    ...item, y: data.stage.height - item.y, rotation: normalizeRotation(180 - item.rotation),
+    ...(item.labelPosition === 'top' ? { labelPosition: 'bottom' as const } : item.labelPosition === 'bottom' ? { labelPosition: 'top' as const } : {}),
+    ...(item.labelOffset ? { labelOffset: { x: item.labelOffset.x, y: -item.labelOffset.y } } : {}),
+  })) };
 }
 
 export function removeItem(data: LayoutData, id: string): LayoutData {

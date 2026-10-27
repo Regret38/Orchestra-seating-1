@@ -1,4 +1,5 @@
-import { BENCH_MAX_LENGTH, BENCH_MIN_LENGTH, SET_DEFINITIONS, normalizeRotation, OBJECT_DEFAULT_WIDTH, OBJECT_DEFAULT_HEIGHT, OBJECT_MIN_SIZE, OBJECT_MAX_SIZE } from './sets';
+import { BENCH_MAX_LENGTH, BENCH_MIN_LENGTH, SET_DEFINITIONS, normalizeRotation, OBJECT_DEFAULT_WIDTH, OBJECT_DEFAULT_HEIGHT, OBJECT_MIN_SIZE, OBJECT_MAX_SIZE, isBenchKind } from './sets';
+import { LABEL_OFFSET_LIMIT, LABEL_POSITIONS } from './labelPlacement';
 import { DEFAULT_STAGE, emptySpares } from './layoutOps';
 import type { CatalogIndex } from './labels';
 import { SET_KINDS, type LayoutData, type LayoutKind, type SetKind, type StageItem } from './types';
@@ -59,6 +60,8 @@ export function validateLayoutData(raw: unknown, where = 'data'): ValidationResu
       push(`${where}.stage: 무대 크기가 허용 범위(200~10000)를 벗어났습니다.`);
     } else {
       stage = { width: raw.stage.width, height: raw.stage.height };
+      if (raw.stage.frontAtTop !== undefined && typeof raw.stage.frontAtTop !== 'boolean') push(`${where}.stage.frontAtTop: 무대 방향은 참/거짓이어야 합니다.`);
+      if (raw.stage.frontAtTop === true) stage.frontAtTop = true;
     }
   }
 
@@ -93,6 +96,8 @@ export function validateLayoutData(raw: unknown, where = 'data'): ValidationResu
         return;
       }
       const before = errors.length;
+      if (it.labelPosition !== undefined && ![...LABEL_POSITIONS, 'custom'].includes(it.labelPosition as never)) push(`${p}.labelPosition: 이름표 위치가 올바르지 않습니다.`);
+      if (it.labelOffset !== undefined && (!isObj(it.labelOffset) || !isNum(it.labelOffset.x) || !isNum(it.labelOffset.y) || Math.abs(it.labelOffset.x) > LABEL_OFFSET_LIMIT || Math.abs(it.labelOffset.y) > LABEL_OFFSET_LIMIT)) push(`${p}.labelOffset: 이름표 위치는 ±${LABEL_OFFSET_LIMIT} 이내여야 합니다.`);
       if (typeof it.id !== 'string' || it.id.length < 1 || it.id.length > 100) push(`${p}.id: ${n}번째 세트의 ID가 없습니다.`);
       else if (ids.has(it.id)) push(`${p}.id: ${n}번째 세트의 ID가 중복됩니다(${it.id}).`);
       if (typeof it.kind !== 'string' || !(SET_KINDS as readonly string[]).includes(it.kind)) {
@@ -145,12 +150,14 @@ export function validateLayoutData(raw: unknown, where = 'data'): ValidationResu
         instrumentId,
         partId: instrumentId && typeof it.partId === 'string' ? it.partId : null,
       };
-      if (item.kind === 'bench') item.benchLength = isNum(it.benchLength) ? it.benchLength : 150;
+      if (isBenchKind(item.kind)) item.benchLength = isNum(it.benchLength) ? it.benchLength : 150;
       if (item.kind === 'object') {
         item.objectLabel = typeof it.objectLabel === 'string' && it.objectLabel.trim() ? it.objectLabel.trim() : '기타 물체';
         item.objectWidth = isNum(it.objectWidth) ? it.objectWidth : OBJECT_DEFAULT_WIDTH;
         item.objectHeight = isNum(it.objectHeight) ? it.objectHeight : OBJECT_DEFAULT_HEIGHT;
       }
+      if (typeof it.labelPosition === 'string') item.labelPosition = it.labelPosition as StageItem['labelPosition'];
+      if (isObj(it.labelOffset) && isNum(it.labelOffset.x) && isNum(it.labelOffset.y)) item.labelOffset = { x: it.labelOffset.x, y: it.labelOffset.y };
       if (typeof it.customLabel === 'string' && it.customLabel.trim()) item.customLabel = it.customLabel.trim();
       if (snapshot && (snapshot.instrument || snapshot.part)) item.labelSnapshot = snapshot;
       items.push(item);

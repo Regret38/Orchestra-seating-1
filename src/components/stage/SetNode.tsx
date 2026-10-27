@@ -3,6 +3,7 @@ import type Konva from 'konva';
 import { getSetGeometry } from '../../domain/sets';
 import { tint, type ResolvedLabel } from '../../domain/labels';
 import type { StageItem } from '../../domain/types';
+import { labelCenter, LABEL_OFFSET_LIMIT } from '../../domain/labelPlacement';
 
 export const STAGE_FONT = "'Noto Sans KR Variable', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif";
 
@@ -29,6 +30,9 @@ export interface SetNodeProps {
   onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onRotateHandleDown?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   showRotateHandle?: boolean;
+  labelMoveMode?: boolean;
+  onLabelSelect?: () => void;
+  onLabelMoveEnd?: (x: number, y: number) => void;
 }
 
 /**
@@ -49,6 +53,7 @@ export function SetNode(props: SetNodeProps) {
   const padY = fs * 0.18;
   const boxW = textW + padX * 2;
   const boxH = fs * 1.2 + padY * 2;
+  const labelAt = labelCenter(item, boxW, boxH);
 
   const handleDist = g.footprint.h / 2 + 30 * px;
 
@@ -99,8 +104,8 @@ export function SetNode(props: SetNodeProps) {
         ))}
         {g.stands.map((s, i) => (
           <Group key={i}>
-            <Line points={[0, s.y + s.h / 2, 0, s.y - 9]} stroke="#334155" strokeWidth={3} />
-            <Circle x={0} y={s.y - 10} radius={4} fill="#334155" />
+            <Line points={[s.x + s.w / 2, s.y + s.h / 2, s.x + s.w / 2, s.y - 9]} stroke="#334155" strokeWidth={3} />
+            <Circle x={s.x + s.w / 2} y={s.y - 10} radius={4} fill="#334155" />
             <Rect x={s.x} y={s.y} width={s.w} height={s.h} cornerRadius={2} fill="#1e293b" />
           </Group>
         ))}
@@ -154,7 +159,18 @@ export function SetNode(props: SetNodeProps) {
       </Group>
 
       {/* 이름표: 회전하지 않음 */}
-      <Group x={-boxW / 2} y={-boxH / 2}>
+      <Group name="set-label" x={labelAt.x - boxW / 2} y={labelAt.y - boxH / 2}
+        draggable={!!props.labelMoveMode}
+        onMouseDown={e => { if (props.labelMoveMode) { e.cancelBubble = true; props.onLabelSelect?.(); } }}
+        onTouchStart={e => { if (props.labelMoveMode) { e.cancelBubble = true; props.onLabelSelect?.(); } }}
+        onDragStart={e => { if (props.labelMoveMode) e.cancelBubble = true; }}
+        onDragEnd={e => {
+          if (!props.labelMoveMode) return;
+          e.cancelBubble = true;
+          const clamp = (n: number) => Math.max(-LABEL_OFFSET_LIMIT, Math.min(LABEL_OFFSET_LIMIT, Math.round(n)));
+          props.onLabelMoveEnd?.(clamp(e.target.x() + boxW / 2), clamp(e.target.y() + boxH / 2));
+        }}
+      >
         <Rect
           width={boxW}
           height={boxH}

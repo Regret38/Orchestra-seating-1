@@ -25,13 +25,13 @@ function withKinds(kinds: SetKind[], instrumentId: string | null = null, partId:
 }
 
 describe('수량 자동 집계', () => {
-  it('6종 세트를 1개씩 추가하면 보면대 3, 일반 의자 4, 장의자 1', () => {
+  it('8종 세트를 1개씩 추가하면 보면대 6, 일반 의자 4, 장의자 3', () => {
     const d = withKinds([...SET_KINDS]);
     const c = computeCounts(d.items, d.spares, catalog);
-    expect(c.placed).toEqual({ stands: 3, chairs: 4, benches: 1 });
-    expect(c.total).toEqual({ stands: 3, chairs: 4, benches: 1 });
-    expect(c.bySetKind).toEqual({ stand_2chairs: 1, stand_1chair: 1, stand_only: 1, chair_only: 1, bench: 1, object: 1 });
-    expect(c.setCount).toBe(6);
+    expect(c.placed).toEqual({ stands: 6, chairs: 4, benches: 3 });
+    expect(c.total).toEqual({ stands: 6, chairs: 4, benches: 3 });
+    expect(c.bySetKind).toEqual({ stand_2chairs: 1, stand_1chair: 1, stand_only: 1, chair_only: 1, bench: 1, bench_1stand: 1, bench_2stands: 1, object: 1 });
+    expect(c.setCount).toBe(8);
   });
 
   it('빈 배치는 모두 0', () => {
@@ -54,7 +54,7 @@ describe('수량 자동 집계', () => {
     d = removeItem(d, bench.id);
     const chairOnly = d.items.find((i) => i.kind === 'chair_only')!;
     d = removeItem(d, chairOnly.id);
-    expect(computeCounts(d.items, d.spares, catalog).placed).toEqual({ stands: 3, chairs: 3, benches: 0 });
+    expect(computeCounts(d.items, d.spares, catalog).placed).toEqual({ stands: 6, chairs: 3, benches: 2 });
   });
 
   it('세트 종류를 바꾸면 즉시 새 구성으로 집계된다', () => {

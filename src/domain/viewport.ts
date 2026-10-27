@@ -1,4 +1,5 @@
-import { itemBounds, type Rect } from './sets';
+import type { Rect } from './sets';
+import { visualBounds } from './labelPlacement';
 import type { StageItem, StageSize } from './types';
 
 /**
@@ -75,7 +76,7 @@ export function unionRects(rects: Rect[]): Rect | null {
  * 세트가 없으면 무대 전체.
  */
 export function contentBounds(items: StageItem[], stage: StageSize, margin = 60): Rect {
-  const u = unionRects(items.map(itemBounds));
+  const u = unionRects(items.map(item => visualBounds(item)));
   if (!u) return { x: -20, y: -20, w: stage.width + 40, h: stage.height + 40 };
   const minW = 360;
   const minH = 260;

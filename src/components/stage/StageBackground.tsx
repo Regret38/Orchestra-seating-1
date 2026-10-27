@@ -18,6 +18,10 @@ export function StageBackground({ stage, showGrid, scale }: Props) {
   const { width: W, height: H } = stage;
   const px = 1 / Math.max(scale, 0.01);
   const podium = podiumPoint(stage);
+  const top = !!stage.frontAtTop;
+  const audienceY = top ? -AUDIENCE_DEPTH : H;
+  const frontY = top ? 0 : H - FRONT_BAND;
+  const backY = top ? H - 42 : 14;
 
   const grid: ReactElement[] = [];
   if (showGrid) {
@@ -50,10 +54,10 @@ export function StageBackground({ stage, showGrid, scale }: Props) {
   return (
     <Group>
       {/* 관객석 */}
-      <Rect name="floor" x={-40} y={H} width={W + 80} height={AUDIENCE_DEPTH} fill="#e8edf4" />
+      <Rect name="floor" x={-40} y={audienceY} width={W + 80} height={AUDIENCE_DEPTH} fill="#e8edf4" />
       <Text
         x={0}
-        y={H + 40}
+        y={audienceY + 40}
         width={W}
         text="관객석"
         align="center"
@@ -65,7 +69,7 @@ export function StageBackground({ stage, showGrid, scale }: Props) {
       />
       <Text
         x={0}
-        y={H + 88}
+        y={audienceY + 88}
         width={W}
         text="(지휘자 뒤쪽 · 객석 방향)"
         align="center"
@@ -80,13 +84,13 @@ export function StageBackground({ stage, showGrid, scale }: Props) {
       {grid}
 
       {/* 무대 앞 띠 */}
-      <Rect x={0} y={H - FRONT_BAND} width={W} height={FRONT_BAND} fill="#fef3c7" listening={false} />
-      <Line points={[0, H, W, H]} stroke="#b45309" strokeWidth={6} listening={false} />
+      <Rect x={0} y={frontY} width={W} height={FRONT_BAND} fill="#fef3c7" listening={false} />
+      <Line points={[0, top ? 0 : H, W, top ? 0 : H]} stroke="#b45309" strokeWidth={6} listening={false} />
       <Text
         x={0}
-        y={H - FRONT_BAND + 18}
+        y={frontY + 18}
         width={W}
-        text="▼  무대 앞 (관객 방향)  ▼"
+        text={top ? "▲  무대 앞 (관객 방향)  ▲" : "▼  무대 앞 (관객 방향)  ▼"}
         align="center"
         fontSize={28}
         fontStyle="bold"
@@ -98,9 +102,9 @@ export function StageBackground({ stage, showGrid, scale }: Props) {
       {/* 무대 뒤 */}
       <Text
         x={0}
-        y={14}
+        y={backY}
         width={W}
-        text="▲ 무대 뒤 ▲"
+        text={top ? "▼ 무대 뒤 ▼" : "▲ 무대 뒤 ▲"}
         align="center"
         fontSize={22}
         fontFamily={STAGE_FONT}
@@ -109,7 +113,7 @@ export function StageBackground({ stage, showGrid, scale }: Props) {
       />
       <Text
         x={16}
-        y={14}
+        y={backY}
         text="배치 안내도 · 실제 축척 아님"
         fontSize={18}
         fontFamily={STAGE_FONT}
@@ -129,7 +133,7 @@ export function StageBackground({ stage, showGrid, scale }: Props) {
       />
       <Text
         x={podium.x - 60}
-        y={podium.y + 38}
+        y={podium.y + (top ? -58 : 38)}
         width={120}
         text="지휘대"
         align="center"

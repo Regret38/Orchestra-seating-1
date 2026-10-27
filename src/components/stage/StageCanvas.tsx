@@ -25,6 +25,8 @@ export interface StageCanvasProps {
   onRotateStart(id: string): void;
   onRotate(id: string, rotation: number): void;
   onRotateEnd(): void;
+  labelMoveMode?: boolean;
+  onLabelMoveEnd?(id: string, x: number, y: number): void;
 }
 
 /**
@@ -139,7 +141,7 @@ export function StageCanvas(props: StageCanvasProps) {
   };
 
   const stopItemDrags = () => {
-    stageRef.current?.find('.set').forEach((n) => {
+    stageRef.current?.find((n: Konva.Node) => n.name() === 'set' || n.name() === 'set-label').forEach((n) => {
       if (n.isDragging()) n.stopDrag();
     });
   };
@@ -266,9 +268,12 @@ export function StageCanvas(props: StageCanvasProps) {
                 selected={selected}
                 scale={view.scale}
                 labelFontSize={labelFontSize}
-                draggable={editable && (selected || !coarse)}
+                draggable={editable && !props.labelMoveMode && (selected || !coarse)}
+                labelMoveMode={editable && props.labelMoveMode}
+                onLabelSelect={() => props.onSelect(item.id)}
+                onLabelMoveEnd={(x, y) => props.onLabelMoveEnd?.(item.id, x, y)}
                 dragBoundFunc={dragBound}
-                showRotateHandle={editable}
+                showRotateHandle={editable && !props.labelMoveMode}
                 onMouseDown={(e) => {
                   if (e.evt.button === 0) props.onSelect(item.id);
                 }}

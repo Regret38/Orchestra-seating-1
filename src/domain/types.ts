@@ -4,7 +4,7 @@
  * 화면 크기·확대 배율과 무관하게 같은 배치 관계가 복원된다.
  */
 
-export type SetKind = 'stand_2chairs' | 'stand_1chair' | 'stand_only' | 'chair_only' | 'bench' | 'object';
+export type SetKind = 'stand_2chairs' | 'stand_1chair' | 'stand_only' | 'chair_only' | 'bench' | 'bench_1stand' | 'bench_2stands' | 'object';
 
 export const SET_KINDS: readonly SetKind[] = [
   'stand_2chairs',
@@ -12,6 +12,8 @@ export const SET_KINDS: readonly SetKind[] = [
   'stand_only',
   'chair_only',
   'bench',
+  'bench_1stand',
+  'bench_2stands',
   'object',
 ] as const;
 
@@ -33,6 +35,9 @@ export interface StageItem {
   objectLabel?: string;
   objectWidth?: number;
   objectHeight?: number;
+  labelPosition?: 'top' | 'bottom' | 'left' | 'right' | 'center' | 'custom';
+  /** 세트 중심에서 이름표 중심까지의 논리 좌표. 세트와 함께 이동한다. */
+  labelOffset?: { x: number; y: number };
   /** null = 미지정/공용 */
   instrumentId: string | null;
   partId: string | null;
@@ -51,6 +56,7 @@ export interface Spares {
 export interface StageSize {
   width: number;
   height: number;
+  frontAtTop?: boolean;
 }
 
 /** layouts.data 에 저장되는 JSON */
@@ -68,6 +74,7 @@ export interface Part {
   color: string | null;
   sortOrder: number;
   isActive: boolean;
+  generated?: boolean;
 }
 
 export interface Instrument {

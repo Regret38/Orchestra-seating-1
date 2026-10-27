@@ -4,6 +4,7 @@ import type { DemoRepository } from '../data/demoRepository';
 import { friendlyError, type Repository } from '../data/repository';
 import { indexCatalog, type CatalogIndex } from '../domain/labels';
 import type { AppUser, Instrument, Invitation, Membership, Role, Team } from '../domain/types';
+import { withNumberedParts } from '../domain/numberedParts';
 
 const TEAM_KEY = 'orchestra-seating:team';
 
@@ -110,7 +111,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCatalogError(null);
     try {
       const next = await repo.listInstruments(currentTeamId);
-      if (request === catalogRequest.current && teamRef.current === currentTeamId) setInstruments(next);
+      if (request === catalogRequest.current && teamRef.current === currentTeamId) setInstruments(withNumberedParts(next));
     } catch (e) {
       if (request === catalogRequest.current) setCatalogError(friendlyError(e));
     } finally {

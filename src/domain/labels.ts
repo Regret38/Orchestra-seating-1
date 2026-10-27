@@ -1,4 +1,5 @@
 import type { Instrument, Part, StageItem } from './types';
+import { withNumberedParts, numberedPartId, numberedPartName } from './numberedParts';
 
 export const UNASSIGNED_LABEL = '미지정/공용';
 export const UNASSIGNED_COLOR = '#94a3b8';
@@ -12,9 +13,14 @@ export interface CatalogIndex {
 export function indexCatalog(instruments: Instrument[]): CatalogIndex {
   const iMap = new Map<string, Instrument>();
   const pMap = new Map<string, Part>();
-  for (const inst of instruments) {
+  for (const inst of withNumberedParts(instruments)) {
     iMap.set(inst.id, inst);
     for (const p of inst.parts) pMap.set(p.id, p);
+    // 자동 파트를 사용하던 배치도 나중에 같은 이름의 실제 파트를 추가해도 읽힌다.
+    for (let n = 1; n <= 5; n++) {
+      const p = inst.parts.find(p => p.name === numberedPartName(inst.name, n));
+      if (p) pMap.set(numberedPartId(inst.id, n), p);
+    }
   }
   return { instruments: iMap, parts: pMap };
 }
@@ -63,11 +69,13 @@ export function resolveItemLabel(item: StageItem, catalog: CatalogIndex): Resolv
   if (inst.allowCustom) {
     const custom = item.customLabel?.trim();
     const name = custom || inst.name;
+    const part = item.partId ? catalog.parts.get(item.partId) : undefined;
+    const suffix = part?.name.startsWith(inst.name + ' ') ? part.name.slice(inst.name.length) : part ? ` · ${part.name}` : '';
     return {
-      key: `${inst.id}:custom:${custom ?? ''}`,
-      display: name,
+      key: `${inst.id}:custom:${custom ?? ''}:${item.partId ?? ''}`,
+      display: name + suffix,
       instrumentName: name,
-      partName: null,
+      partName: part?.name ?? null,
       color: inst.color,
       sortKey: [inst.sortOrder, 0, name],
     };

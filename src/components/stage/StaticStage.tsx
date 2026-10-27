@@ -2,7 +2,7 @@ import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import type Konva from 'konva';
 import { Layer, Rect, Stage } from 'react-konva';
 import { resolveItemLabel, type CatalogIndex } from '../../domain/labels';
-import { itemBounds } from '../../domain/sets';
+import { visualBounds } from '../../domain/labelPlacement';
 import { unionRects } from '../../domain/viewport';
 import type { LayoutData } from '../../domain/types';
 import { SetNode } from './SetNode';
@@ -27,10 +27,10 @@ export const StaticStage = forwardRef<StaticStageHandle, Props>(function StaticS
   const stageRef = useRef<Konva.Stage>(null);
 
   const area = useMemo(() => {
-    const base = { x: -20, y: -20, w: data.stage.width + 40, h: data.stage.height + AUDIENCE_DEPTH + 30 };
-    const u = unionRects([base, ...data.items.map(itemBounds)])!;
+    const base = { x: -20, y: data.stage.frontAtTop ? -AUDIENCE_DEPTH - 10 : -20, w: data.stage.width + 40, h: data.stage.height + AUDIENCE_DEPTH + 30 };
+    const u = unionRects([base, ...data.items.map(item => visualBounds(item, resolveItemLabel(item, catalog).display.length * 16 + 20, 32))])!;
     return { x: u.x - 10, y: u.y - 10, w: u.w + 20, h: u.h + 20 };
-  }, [data]);
+  }, [data, catalog]);
 
   const scale = width / area.w;
   const height = Math.round(area.h * scale);

@@ -58,6 +58,8 @@ export const SET_DEFINITIONS: Record<SetKind, SetDefinition> = {
     shortLabel: '기타 물체',
     counts: { stands: 0, chairs: 0, benches: 0 },
   },
+  bench_1stand: { kind: 'bench_1stand', label: '장의자 + 보면대 1개', shortLabel: '장의자+보면대1', counts: { stands: 1, chairs: 0, benches: 1 } },
+  bench_2stands: { kind: 'bench_2stands', label: '장의자 + 보면대 2개', shortLabel: '장의자+보면대2', counts: { stands: 2, chairs: 0, benches: 1 } },
 };
 
 // ---- 그림 치수(논리 단위). 축척 도면이 아닌 안내도 기준 ----
@@ -67,7 +69,8 @@ export const STAND_DEPTH = 10;
 export const BENCH_DEPTH = 44;
 export const BENCH_DEFAULT_LENGTH = 150;
 export const BENCH_MIN_LENGTH = 70;
-export const BENCH_MAX_LENGTH = 600;
+export const BENCH_MAX_LENGTH = 1200;
+export function isBenchKind(kind: SetKind): boolean { return kind === 'bench' || kind === 'bench_1stand' || kind === 'bench_2stands'; }
 export const OBJECT_DEFAULT_WIDTH = 160;
 export const OBJECT_DEFAULT_HEIGHT = 100;
 export const OBJECT_MIN_SIZE = 30;
@@ -126,13 +129,16 @@ export function getSetGeometry(kind: SetKind, benchLength?: number, objectWidth?
       return { chairs: [], stands: [standAt(0, 0)], bench: null, footprint: { w: 56, h: 32 } };
     case 'chair_only':
       return { chairs: [chairAt(0, 0)], stands: [], bench: null, footprint: { w: 48, h: 48 } };
-    case 'bench': {
+    case 'bench':
+    case 'bench_1stand':
+    case 'bench_2stands': {
       const len = clampBenchLength(benchLength);
+      const stands = kind === 'bench_1stand' ? [standAt(0, 46)] : kind === 'bench_2stands' ? [standAt(-len / 4, 46), standAt(len / 4, 46)] : [];
       return {
         chairs: [],
-        stands: [],
+        stands,
         bench: { x: -len / 2, y: -BENCH_DEPTH / 2, w: len, h: BENCH_DEPTH },
-        footprint: { w: len + 4, h: BENCH_DEPTH + 4 },
+        footprint: { w: len + 4, h: stands.length ? 106 : BENCH_DEPTH + 4 },
       };
     }
   }
