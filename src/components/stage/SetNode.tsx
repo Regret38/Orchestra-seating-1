@@ -56,6 +56,8 @@ export function SetNode(props: SetNodeProps) {
   const labelAt = labelCenter(item, boxW, boxH);
 
   const handleDist = g.footprint.h / 2 + 30 * px;
+  const excluded = item.kind !== 'object' && item.includeInCounts === false;
+  const selectionPad = (excluded ? 11 : 6) * px;
 
   return (
     <Group
@@ -115,12 +117,25 @@ export function SetNode(props: SetNodeProps) {
             <Rect x={s.x} y={s.y} width={s.w} height={s.h} cornerRadius={2} fill="#1e293b" />
           </Group>
         ))}
+        {excluded && (
+          <Rect
+            name="excluded-outline"
+            x={-g.footprint.w / 2 - 5 * px}
+            y={-g.footprint.h / 2 - 5 * px}
+            width={g.footprint.w + 10 * px}
+            height={g.footprint.h + 10 * px}
+            stroke="#dc2626"
+            strokeWidth={3 * px}
+            cornerRadius={6 * px}
+            listening={false}
+          />
+        )}
         {selected && (
           <Rect
-            x={-g.footprint.w / 2 - 6 * px}
-            y={-g.footprint.h / 2 - 6 * px}
-            width={g.footprint.w + 12 * px}
-            height={g.footprint.h + 12 * px}
+            x={-g.footprint.w / 2 - selectionPad}
+            y={-g.footprint.h / 2 - selectionPad}
+            width={g.footprint.w + 2 * selectionPad}
+            height={g.footprint.h + 2 * selectionPad}
             stroke="#2563eb"
             strokeWidth={2.5 * px}
             dash={[8 * px, 5 * px]}

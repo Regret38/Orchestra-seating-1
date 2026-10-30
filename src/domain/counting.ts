@@ -40,11 +40,13 @@ export function computeCounts(items: StageItem[], spares: Spares, catalog: Catal
   for (const item of items) {
     const def = SET_DEFINITIONS[item.kind];
     if (!def) continue;
+    // 세트별 개수는 실제 배치 수를 유지하고, 준비 물품만 선택적으로 제외한다.
+    bySetKind[item.kind] += 1;
+    if (item.includeInCounts === false) continue;
     placed.stands += def.counts.stands;
     placed.chairs += def.counts.chairs;
     placed.benches += def.counts.benches;
     placed.tallChairs += def.counts.tallChairs;
-    bySetKind[item.kind] += 1;
 
     // 공간 표시용 물체는 물품 집계·악기별 표에서 제외한다.
     if (item.kind === 'object') continue;

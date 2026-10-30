@@ -99,6 +99,7 @@ export function validateLayoutData(raw: unknown, where = 'data'): ValidationResu
       // 기존 단독 장의자(bench)는 그대로 유지한다.
       const kind = it.kind === 'bench_1stand' ? 'tallchair_1stand' : it.kind === 'bench_2stands' ? 'tallchair_2stands' : it.kind;
       const before = errors.length;
+      if (it.includeInCounts !== undefined && typeof it.includeInCounts !== 'boolean') push(`${p}.includeInCounts: 준비 수량 포함 여부는 참/거짓이어야 합니다.`);
       if (it.labelPosition !== undefined && ![...LABEL_POSITIONS, 'custom'].includes(it.labelPosition as never)) push(`${p}.labelPosition: 이름표 위치가 올바르지 않습니다.`);
       if (it.labelOffset !== undefined && (!isObj(it.labelOffset) || !isNum(it.labelOffset.x) || !isNum(it.labelOffset.y) || Math.abs(it.labelOffset.x) > LABEL_OFFSET_LIMIT || Math.abs(it.labelOffset.y) > LABEL_OFFSET_LIMIT)) push(`${p}.labelOffset: 이름표 위치는 ±${LABEL_OFFSET_LIMIT} 이내여야 합니다.`);
       if (typeof it.id !== 'string' || it.id.length < 1 || it.id.length > 100) push(`${p}.id: ${n}번째 세트의 ID가 없습니다.`);
@@ -154,6 +155,7 @@ export function validateLayoutData(raw: unknown, where = 'data'): ValidationResu
         partId: instrumentId && typeof it.partId === 'string' ? it.partId : null,
       };
       if (isBenchKind(item.kind)) item.benchLength = isNum(it.benchLength) ? it.benchLength : 150;
+      if (typeof it.includeInCounts === 'boolean') item.includeInCounts = it.includeInCounts;
       if (item.kind === 'object') {
         item.objectLabel = typeof it.objectLabel === 'string' && it.objectLabel.trim() ? it.objectLabel.trim() : '기타 물체';
         item.objectWidth = isNum(it.objectWidth) ? it.objectWidth : OBJECT_DEFAULT_WIDTH;

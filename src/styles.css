@@ -16,3 +16,5 @@
 /* 일반 의자·장의자·키큰의자를 별도로 집계 */
 .count-cards,.spare-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.count-cards>div:nth-child(4){background:#f0eaf7}
 @media(max-width:760px){.set-picker{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+.count-inclusion{grid-column:1/-1;padding:12px;border:1px solid var(--line);border-radius:8px;background:#f5f6f0}.count-inclusion-check{flex-direction:row;align-items:center;gap:9px;font-size:13px;min-height:32px}.count-inclusion-check input{width:18px;height:18px;flex-shrink:0}.count-inclusion p{margin:5px 0 0;font-size:11px}.count-excluded-note{color:#b91c1c}

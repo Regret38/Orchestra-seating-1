@@ -25,6 +25,8 @@ export type LayoutKind = 'template' | 'event';
 export interface StageItem {
   id: string;
   kind: SetKind;
+  /** 준비 물품 수량에 포함. 기존 데이터의 미지정 값은 true로 처리한다. */
+  includeInCounts?: boolean;
   /** 세트 중심의 논리 좌표 */
   x: number;
   y: number;
