@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react';
 import type Konva from 'konva';
 import { Layer, Rect, Stage } from 'react-konva';
 import { resolveItemLabel, type CatalogIndex } from '../../domain/labels';
@@ -21,24 +21,38 @@ interface Props {
   width: number;
   /** 보기 전용 팝업은 가용 높이까지 함께 맞춘다. */
   height?: number;
+  /** 팝업 확대 시 글자를 다시 그릴 해상도 배율. */
+  resolutionScale?: number;
+}
+
+export function getStaticStageArea(data: LayoutData, catalog: CatalogIndex) {
+    const base = { x: -20, y: data.stage.frontAtTop ? -AUDIENCE_DEPTH - 10 : -20, w: data.stage.width + 40, h: data.stage.height + AUDIENCE_DEPTH + 30 };
+    const u = unionRects([base, ...data.items.map(item => visualBounds(item, resolveItemLabel(item, catalog).display.length * 16 + 20, 32))])!;
+    return { x: u.x - 10, y: u.y - 10, w: u.w + 20, h: u.h + 20 };
 }
 
 /**
  * 인쇄·PNG 용 정적 무대 그림. 조작 기능 없음.
  * 무대 전체 + 관객석 + 무대 밖에 놓인 세트까지 포함하도록 영역을 잡는다.
  */
-export const StaticStage = forwardRef<StaticStageHandle, Props>(function StaticStage({ data, catalog, width, height: availableHeight }, ref) {
+export const StaticStage = forwardRef<StaticStageHandle, Props>(function StaticStage({ data, catalog, width, height: availableHeight, resolutionScale = 1 }, ref) {
   const stageRef = useRef<Konva.Stage>(null);
 
   const area = useMemo(() => {
-    const base = { x: -20, y: data.stage.frontAtTop ? -AUDIENCE_DEPTH - 10 : -20, w: data.stage.width + 40, h: data.stage.height + AUDIENCE_DEPTH + 30 };
-    const u = unionRects([base, ...data.items.map(item => visualBounds(item, resolveItemLabel(item, catalog).display.length * 16 + 20, 32))])!;
-    return { x: u.x - 10, y: u.y - 10, w: u.w + 20, h: u.h + 20 };
+    return getStaticStageArea(data, catalog);
   }, [data, catalog]);
 
   const scale = Math.min(width / area.w, availableHeight === undefined ? Infinity : availableHeight / area.h);
   const height = availableHeight ?? Math.ceil(area.h * scale);
   const counts = useMemo(() => computeCounts(data.items, data.spares, catalog), [data, catalog]);
+
+  useLayoutEffect(() => {
+    // Repaint text at zoomed resolution, while bounding canvas memory usage.
+    const ratio = Math.max(1, Math.min((window.devicePixelRatio || 1) * resolutionScale, 6, Math.sqrt(6_000_000 / (width * height))));
+    stageRef.current?.getLayers().forEach(layer => {
+      if (layer.getCanvas().getPixelRatio() !== ratio) { layer.getCanvas().setPixelRatio(ratio); layer.draw(); }
+    });
+  }, [width, height, resolutionScale]);
 
   useImperativeHandle(ref, () => ({
     toDataURL(pixelRatio = 2, includeCounts = true) {
