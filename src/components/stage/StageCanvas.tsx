@@ -35,7 +35,7 @@ export interface StageCanvasProps {
  * 조작 방식
  *  - 마우스: 세트를 끌면 이동, 빈 곳을 끌면 화면 이동, 휠로 확대·축소
  *  - 터치: 세트를 탭해 선택 → 선택된 세트만 끌어서 이동
- *          선택되지 않은 곳을 끌면 화면 이동, 두 손가락으로 확대·축소
+ *          빈 곳은 한 손가락으로 페이지 스크롤, 두 손가락으로 무대 이동·확대·축소
  *    (화면 이동과 세트 이동이 섞이지 않도록 구분)
  */
 export function StageCanvas(props: StageCanvasProps) {
@@ -55,6 +55,8 @@ export function StageCanvas(props: StageCanvasProps) {
 
   const rotatingId = useRef<string | null>(null);
   const pinch = useRef<{ dist: number; center: { x: number; y: number } } | null>(null);
+  const twoFingerGesture = useRef(false);
+  const suspendedDrags = useRef<Konva.Node[]>([]);
   const downPos = useRef<{ x: number; y: number } | null>(null);
   const movedFar = useRef(false);
 
@@ -146,39 +148,90 @@ export function StageCanvas(props: StageCanvasProps) {
     });
   };
 
-  const onTouchMove = (e: Konva.KonvaEventObject<TouchEvent>) => {
-    const touches = e.evt.touches;
-    if (touches.length >= 2) {
-      e.evt.preventDefault();
+  const touchPair = (touches: TouchList) => {
+    const rect = stageRef.current!.container().getBoundingClientRect();
+    const p1 = { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
+    const p2 = { x: touches[1].clientX - rect.left, y: touches[1].clientY - rect.top };
+    return { dist: Math.hypot(p1.x - p2.x, p1.y - p2.y), center: { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 } };
+  };
+
+  // Non-passive native listeners run before Konva, including when a name label
+  // stops event bubbling. A second finger must never move an item accidentally.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const start = (e: TouchEvent) => {
       const stage = stageRef.current;
       if (!stage) return;
-      if (stage.isDragging()) stage.stopDrag();
-      stopItemDrags();
-      if (rotatingId.current) {
-        rotatingId.current = null;
-        propsRef.current.onRotateEnd();
-      }
-      const rect = stage.container().getBoundingClientRect();
-      const p1 = { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
-      const p2 = { x: touches[1].clientX - rect.left, y: touches[1].clientY - rect.top };
-      const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
-      const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-      if (!pinch.current || pinch.current.dist === 0) {
-        pinch.current = { dist, center };
+      stage.draggable(false);
+      if (e.touches.length >= 2) {
+        if (e.cancelable) e.preventDefault();
+        if (stage.isDragging()) stage.stopDrag();
+        stopItemDrags();
+        stage.find((node: Konva.Node) => (node.name() === 'set' || node.name() === 'set-label') && node.draggable()).forEach(node => {
+          suspendedDrags.current.push(node); node.draggable(false);
+        });
+        if (rotatingId.current) { rotatingId.current = null; propsRef.current.onRotateEnd(); }
+        twoFingerGesture.current = true;
+        movedFar.current = true;
+        pinch.current = touchPair(e.touches);
         return;
       }
-      const v = viewRef.current;
-      const anchor = screenToLogical(v, pinch.current.center);
-      const scale = clampScale(v.scale * (dist / pinch.current.dist));
-      setView({ scale, x: center.x - anchor.x * scale, y: center.y - anchor.y * scale });
-      pinch.current = { dist, center };
-      movedFar.current = true;
-      return;
-    }
-    if (rotatingId.current) {
-      e.evt.preventDefault();
-      handleRotateMove();
-    }
+      if (twoFingerGesture.current) { if (e.cancelable) e.preventDefault(); return; }
+      const rect = stage.container().getBoundingClientRect();
+      const point = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+      const shape = stage.getIntersection(point);
+      const set = shape?.findAncestor('.set');
+      const label = shape?.findAncestor('.set-label');
+      const p = propsRef.current;
+      const editing = p.editable && !!set && (shape?.name() === 'rotate-handle' || (p.labelMoveMode ? !!label : set.id() === p.selectedId || !coarse));
+      // Konva normally prevents scrolling on every touched shape.
+      shape?.preventDefault(!!editing);
+      if (editing && e.cancelable) e.preventDefault();
+    };
+    const move = (e: TouchEvent) => {
+      if (e.touches.length >= 2) {
+        if (e.cancelable) e.preventDefault();
+        stopItemDrags();
+        const next = touchPair(e.touches);
+        const prev = pinch.current;
+        if (prev && prev.dist > 0) {
+          const v = viewRef.current;
+          const anchor = screenToLogical(v, prev.center);
+          const scale = clampScale(v.scale * next.dist / prev.dist);
+          setView({ scale, x: next.center.x - anchor.x * scale, y: next.center.y - anchor.y * scale });
+        }
+        pinch.current = next;
+        twoFingerGesture.current = true;
+        movedFar.current = true;
+      } else if (twoFingerGesture.current) {
+        if (e.cancelable) e.preventDefault();
+        stopItemDrags();
+      }
+    };
+    const end = (e: TouchEvent) => {
+      if (e.touches.length < 2) pinch.current = null;
+      if (e.touches.length === 0) {
+        twoFingerGesture.current = false;
+        suspendedDrags.current.forEach(node => { if (node.getStage()) node.draggable(true); });
+        suspendedDrags.current = [];
+      }
+    };
+    el.addEventListener('touchstart', start, { capture: true, passive: false });
+    el.addEventListener('touchmove', move, { capture: true, passive: false });
+    el.addEventListener('touchend', end, true);
+    el.addEventListener('touchcancel', end, true);
+    return () => {
+      el.removeEventListener('touchstart', start, true);
+      el.removeEventListener('touchmove', move, true);
+      el.removeEventListener('touchend', end, true);
+      el.removeEventListener('touchcancel', end, true);
+    };
+  }, [coarse, setView]);
+
+  const onTouchMove = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    if (e.evt.touches.length >= 2 || twoFingerGesture.current) return;
+    if (rotatingId.current) { if (e.evt.cancelable) e.evt.preventDefault(); handleRotateMove(); }
     trackMove();
   };
 
@@ -221,12 +274,12 @@ export function StageCanvas(props: StageCanvasProps) {
         y={view.y}
         scaleX={view.scale}
         scaleY={view.scale}
-        draggable
+        draggable={!coarse}
+        preventDefault={false}
         onWheel={onWheel}
-        onMouseDown={onPointerDownStage}
+        onMouseDown={() => { stageRef.current?.draggable(true); onPointerDownStage(); }}
         onTouchStart={(e) => {
-          if (e.evt.touches.length === 1) onPointerDownStage();
-          else pinch.current = null;
+          if (e.evt.touches.length === 1 && !twoFingerGesture.current) onPointerDownStage();
         }}
         onMouseMove={() => {
           handleRotateMove();
@@ -291,7 +344,7 @@ export function StageCanvas(props: StageCanvasProps) {
                 }}
                 onRotateHandleDown={(e) => {
                   e.cancelBubble = true; // 세트 이동·화면 이동이 시작되지 않게
-                  if (!editable) return;
+                  if (!editable || twoFingerGesture.current || ('touches' in e.evt && e.evt.touches.length !== 1)) return;
                   rotatingId.current = item.id;
                   props.onRotateStart(item.id);
                 }}

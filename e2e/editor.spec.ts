@@ -124,6 +124,8 @@ test('canvas 이동·줌과 출력 미리보기', async ({ page, isMobile }) => 
   expect(after.layout.data.items[0].x).not.toBe(before.layout.data.items[0].x);
   await page.getByRole('button', { name: '확대', exact: true }).click();
   await page.getByRole('button', { name: '전체 보기', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: /^무대 전체 보기/ })).toBeVisible();
+  await page.getByRole('button', { name: '닫기', exact: true }).click();
   const stable = await exportData(page);
   expect(stable.layout.data).toEqual(after.layout.data);
   await page.getByRole('button', { name: '출력·내보내기' }).click();

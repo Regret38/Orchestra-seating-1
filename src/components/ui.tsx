@@ -111,18 +111,20 @@ export function Modal({
   onClose,
   footer,
   wide,
+  fullscreen,
 }: {
   title: string;
   children: ReactNode;
   onClose?: () => void;
   footer?: ReactNode;
   wide?: boolean;
+  fullscreen?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     const first = ref.current?.querySelector<HTMLElement>('input, select, textarea, button:not(.modal-close)');
-    first?.focus();
+    (first ?? ref.current)?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && onClose) onClose();
       if (e.key === 'Tab') {
@@ -138,9 +140,17 @@ export function Modal({
       prev?.focus?.();
     };
   }, [onClose]);
+  useEffect(() => {
+    if (!fullscreen) return;
+    const y = window.scrollY;
+    const body = document.body;
+    const before = { position: body.style.position, top: body.style.top, width: body.style.width, overflow: body.style.overflow };
+    Object.assign(body.style, { position: 'fixed', top: `${-y}px`, width: '100%', overflow: 'hidden' });
+    return () => { Object.assign(body.style, before); window.scrollTo(0, y); };
+  }, [fullscreen]);
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div className={`modal ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title} ref={ref}>
+    <div className={`modal-backdrop ${fullscreen ? 'fullscreen-backdrop' : ''}`} onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
+      <div className={`modal ${wide ? 'modal-wide' : ''} ${fullscreen ? 'modal-fullscreen' : ''}`} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} ref={ref}>
         <div className="modal-header">
           <h2>{title}</h2>
           {onClose && (

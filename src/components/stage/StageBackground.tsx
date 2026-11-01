@@ -54,7 +54,7 @@ export function StageBackground({ stage, showGrid, scale }: Props) {
   return (
     <Group>
       {/* 관객석 */}
-      <Rect name="floor" x={-40} y={audienceY} width={W + 80} height={AUDIENCE_DEPTH} fill="#e8edf4" />
+      <Rect preventDefault={false} name="floor" x={-40} y={audienceY} width={W + 80} height={AUDIENCE_DEPTH} fill="#e8edf4" />
       <Text
         x={0}
         y={audienceY + 40}
@@ -80,7 +80,7 @@ export function StageBackground({ stage, showGrid, scale }: Props) {
       />
 
       {/* 무대 바닥 */}
-      <Rect name="floor" x={0} y={0} width={W} height={H} fill="#fffdf7" stroke="#94a3b8" strokeWidth={3} />
+      <Rect preventDefault={false} name="floor" x={0} y={0} width={W} height={H} fill="#fffdf7" stroke="#94a3b8" strokeWidth={3} />
       {grid}
 
       {/* 무대 앞 띠 */}

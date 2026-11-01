@@ -18,6 +18,7 @@ import { StaticStage, type StaticStageHandle } from '../components/stage/StaticS
 import { downloadFile, formatDate, formatDateTime, Icon, Modal, safeFileName, SetKindIcon, Spinner } from '../components/ui';
 import { LibraryDialog } from '../components/LibraryDialog';
 import { AdminDialog } from '../components/AdminDialog';
+import { StageOverview } from '../components/StageOverview';
 
 export function App() {
   const app = useApp();
@@ -28,6 +29,7 @@ export function App() {
   const [admin, setAdmin] = useState(false);
   const [showInvites, setShowInvites] = useState(false);
   const [output, setOutput] = useState(false);
+  const [overview, setOverview] = useState(false);
   const [panel, setPanel] = useState<'counts' | 'selection'>('counts');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
@@ -52,7 +54,7 @@ export function App() {
   useEffect(() => {
     let alive = true;
     useEditor.getState().reset();
-    setInitialError(''); setLibrary(false); setAdmin(false);
+    setInitialError(''); setLibrary(false); setAdmin(false); setOverview(false);
     if (!app.team) return;
     app.repo.listLayouts(app.team.id).then(async layouts => {
       const first = layouts.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
@@ -64,7 +66,7 @@ export function App() {
   }, [app.team?.id, app.user?.id]);
 
   function loadRecord(rec: LayoutRecord) {
-    setLabelMoveMode(false);
+    setLabelMoveMode(false); setOverview(false);
     useEditor.getState().load(rec);
     requestAnimationFrame(() => useView.getState().fitTo(rec.data.items, rec.data.stage));
   }
@@ -146,9 +148,18 @@ export function App() {
     return () => window.removeEventListener('keydown', key);
   });
 
-  function makePrintImage() {
-    const url = printStage.current?.toDataURL(2);
-    if (url) setPrintImage(url);
+  async function printLayout() {
+    await task(async () => {
+      await document.fonts.ready;
+      const url = printStage.current?.toDataURL(2, false);
+      if (!url) throw new Error('출력할 무대를 불러오는 중입니다. 잠시 후 다시 시도하세요.');
+      const image = new Image(); image.src = url;
+      await image.decode();
+      setPrintImage(url);
+      // Wait for React to render and the browser to lay out the print sheet.
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      window.print();
+    });
   }
 
   if (config.secretKeyMisconfigured) return <main className="auth-card"><h1>연결 설정을 확인해 주세요</h1><p>공개 키 대신 비밀키가 입력되었습니다. 해당 키를 폐기·교체하고 publishable 키로 다시 빌드하세요.</p></main>;
@@ -185,9 +196,9 @@ export function App() {
       </section>
       <div className="workspace">
         <section className="stage-workspace">
-          <div className="canvas-tools"><div><button aria-label="실행 취소" disabled={!editable || !ed.past.length} onClick={ed.undo}><Icon name="undo"/></button><button aria-label="다시 실행" disabled={!editable || !ed.future.length} onClick={ed.redo}><Icon name="redo"/></button><span className="tool-divider"/><label><input type="checkbox" checked={prefs.showGrid} onChange={e => prefs.set({ showGrid: e.target.checked })}/>격자</label><label><input type="checkbox" checked={prefs.snap} onChange={e => prefs.set({ snap: e.target.checked })}/>맞춤</label></div><div><button aria-label="축소" onClick={() => useView.getState().zoomBy(0.8)}>−</button><button aria-label="확대" onClick={() => useView.getState().zoomBy(1.25)}>＋</button><button onClick={() => useView.getState().fitTo(ed.data.items, ed.data.stage)}><Icon name="target"/>전체 보기</button></div></div>
+          <div className="canvas-tools"><div><button aria-label="실행 취소" disabled={!editable || !ed.past.length} onClick={ed.undo}><Icon name="undo"/></button><button aria-label="다시 실행" disabled={!editable || !ed.future.length} onClick={ed.redo}><Icon name="redo"/></button><span className="tool-divider"/><label><input type="checkbox" checked={prefs.showGrid} onChange={e => prefs.set({ showGrid: e.target.checked })}/>격자</label><label><input type="checkbox" checked={prefs.snap} onChange={e => prefs.set({ snap: e.target.checked })}/>맞춤</label></div><div><button aria-label="축소" onClick={() => useView.getState().zoomBy(0.8)}>−</button><button aria-label="확대" onClick={() => useView.getState().zoomBy(1.25)}>＋</button><button onClick={() => useView.getState().fitTo(ed.data.items, ed.data.stage)} aria-label="화면 맞춤"><Icon name="target"/></button><button onClick={() => setOverview(true)}><Icon name="fit"/>전체 보기</button></div></div>
           <StageCanvas labelMoveMode={labelMoveMode} onLabelMoveEnd={(id, x, y) => { if (editable && labelMoveMode) ed.commit(d => updateItem(d, id, { labelPosition: 'custom', labelOffset: { x, y } })); }} data={ed.data} catalog={app.catalog} selectedId={ed.selectedId} editable={editable} showGrid={prefs.showGrid} snap={prefs.snap} onSelect={id => { ed.select(id); if (id) setPanel('selection'); }} onMoveEnd={(id, x, y) => { if (editable) ed.commit(d => updateItem(d, id, { x, y })); }} onRotateStart={() => { if (editable) ed.beginGesture(); }} onRotate={(id, rotation) => { if (editable) ed.updateTransient(d => updateItem(d, id, { rotation })); }} onRotateEnd={() => ed.endGesture()}/>
-          <footer className="canvas-footer"><span>세트 선택 후 이동 · 빈 공간을 끌어 화면 이동 · 두 손가락으로 확대</span><span>{!editable ? '열람 전용' : dirty ? '● 저장하지 않은 변경' : app.isDemo ? '메모리 기준 변경 없음' : '✓ 저장된 상태'}</span></footer>
+          <footer className="canvas-footer"><span>모바일: 빈 곳 한 손가락은 페이지 스크롤 · 두 손가락은 무대 이동·확대 · 선택한 세트는 끌어서 이동</span><span>{!editable ? '열람 전용' : dirty ? '● 저장하지 않은 변경' : app.isDemo ? '메모리 기준 변경 없음' : '✓ 저장된 상태'}</span></footer>
         </section>
         <aside className="side-panel"><div className="tabs"><button className={panel === 'counts' ? 'active' : ''} onClick={() => setPanel('counts')}>준비 수량</button><button className={panel === 'selection' ? 'active' : ''} onClick={() => setPanel('selection')}>선택한 세트</button></div>
           {panel === 'counts' ? <><CountCards counts={counts}/><div className="panel-body"><h3>예비 물품</h3><p className="muted">무대에 배치하지 않고 준비 수량에만 더해요.</p><div className="spare-fields">{(['stands', 'chairs', 'benches', 'tallChairs'] as const).map((key, i) => <label key={key}>{['보면대', '의자', '장의자', '키큰의자'][i]}<input aria-label={`예비 ${['보면대', '의자', '장의자', '키큰의자'][i]}`} type="number" min="0" max="9999" value={ed.data.spares[key] ?? 0} disabled={!editable} onChange={e => ed.commit(d => setSpares(d, { [key]: Number(e.target.value) }))}/></label>)}</div><h3>악기·파트별 배치</h3><GroupTable counts={counts}/><details><summary>세트별 개수 (전체 배치)</summary><p className="muted">준비 수량에서 제외한 세트와 기타 물체도 포함합니다.</p>{SET_KINDS.map(k => <div className="count-row" key={k}><span>{SET_DEFINITIONS[k].label}</span><strong>{counts.bySetKind[k]}</strong></div>)}</details></div></> : <div className="panel-body">{selected ? <><p className="eyebrow">SELECTED SET</p><h2>{SET_DEFINITIONS[selected.kind].label}</h2><fieldset disabled={!editable}>{selected.kind !== 'object' && <div className="count-inclusion"><label className="count-inclusion-check"><input type="checkbox" checked={selected.includeInCounts !== false} onChange={e => patchSelected({ includeInCounts: e.target.checked })}/>준비 수량에 포함</label><p className={selected.includeInCounts === false ? 'count-excluded-note' : 'muted'}>{selected.includeInCounts === false ? '준비 수량 제외 · 무대의 빨간 테두리로 표시합니다.' : '이 세트의 보면대와 의자를 준비 수량에 포함합니다.'}</p></div>}<label>세트 구성<select aria-label="선택한 세트 구성" value={selected.kind} onChange={e => patchSelected({ kind: e.target.value as SetKind })}>{SET_KINDS.map(k => <option key={k} value={k}>{SET_DEFINITIONS[k].label}</option>)}</select></label>{selected.kind === 'object' ? <><p className="muted">공간만 표시하며 보면대·일반 의자·장의자·키큰의자 준비 수량에는 포함되지 않습니다.</p><label>물체 이름<input aria-label="물체 이름" maxLength={40} value={selected.objectLabel ?? '기타 물체'} onChange={e => patchSelected({ objectLabel: e.target.value })}/></label><div className="two-fields"><label>가로 크기<input aria-label="물체 가로" type="number" min={OBJECT_MIN_SIZE} max={OBJECT_MAX_SIZE} value={selected.objectWidth ?? 160} onChange={e => patchSelected({ objectWidth: Number(e.target.value) })}/></label><label>세로 크기<input aria-label="물체 세로" type="number" min={OBJECT_MIN_SIZE} max={OBJECT_MAX_SIZE} value={selected.objectHeight ?? 100} onChange={e => patchSelected({ objectHeight: Number(e.target.value) })}/></label></div></> : <InstrumentFields instrumentId={selected.instrumentId} partId={selected.partId} customLabel={selected.customLabel ?? ''} onChange={v => { const next = { ...selected, ...v }; patchSelected({ ...v, labelSnapshot: snapshotLabel(next, app.catalog) }); }}/>}<div className="label-controls"><h3>이름표 위치</h3><div className="label-presets">{LABEL_POSITIONS.map(pos => <button key={pos} aria-pressed={(selected.labelPosition ?? 'center') === pos} onClick={() => patchSelected({ labelPosition: pos, labelOffset: undefined })}>{LABEL_POSITION_NAMES[pos]}</button>)}</div><p className="muted">직접 끌려면 위쪽의 ‘이름표 옮기기’를 누르고, 끝나면 ‘이름표 이동 정지’를 누르세요.</p>{selected.labelPosition === 'custom' && <div className="two-fields"><label>이름표 X<input aria-label="이름표 X" type="number" min={-LABEL_OFFSET_LIMIT} max={LABEL_OFFSET_LIMIT} value={selected.labelOffset?.x ?? 0} onChange={e => patchSelected({ labelOffset: { x: Math.max(-LABEL_OFFSET_LIMIT, Math.min(LABEL_OFFSET_LIMIT, Number(e.target.value))), y: selected.labelOffset?.y ?? 0 } })}/></label><label>이름표 Y<input aria-label="이름표 Y" type="number" min={-LABEL_OFFSET_LIMIT} max={LABEL_OFFSET_LIMIT} value={selected.labelOffset?.y ?? 0} onChange={e => patchSelected({ labelOffset: { x: selected.labelOffset?.x ?? 0, y: Math.max(-LABEL_OFFSET_LIMIT, Math.min(LABEL_OFFSET_LIMIT, Number(e.target.value))) } })}/></label></div>}</div><div className="two-fields"><label>X 위치<input aria-label="세트 X 위치" type="number" min="-20000" max="20000" value={selected.x} onChange={e => patchSelected({ x: Math.max(-20000, Math.min(20000, Number(e.target.value))) })}/></label><label>Y 위치<input aria-label="세트 Y 위치" type="number" min="-20000" max="20000" value={selected.y} onChange={e => patchSelected({ y: Math.max(-20000, Math.min(20000, Number(e.target.value))) })}/></label></div><label>회전 각도<input aria-label="회전 각도" type="number" value={selected.rotation} onChange={e => patchSelected({ rotation: Number(e.target.value) })}/></label><div className="button-row"><button onClick={() => patchSelected({ rotation: selected.rotation - 15 })}>↶ 15°</button><button onClick={() => patchSelected({ rotation: selected.rotation + 15 })}>↷ 15°</button></div>{isBenchKind(selected.kind) && <label>장의자 길이 (안내도 단위)<input aria-label="장의자 길이" type="number" min={BENCH_MIN_LENGTH} max={BENCH_MAX_LENGTH} value={selected.benchLength ?? 150} onChange={e => patchSelected({ benchLength: Number(e.target.value) })}/></label>}<div className="button-row"><button onClick={duplicate}><Icon name="copy"/>복제</button><button className="danger" onClick={() => ed.commit(d => removeItem(d, selected.id), null)}><Icon name="trash"/>삭제</button></div></fieldset></> : <div className="empty-selection"><Icon name="target" size={32}/><h3>무대의 세트를 선택하세요</h3><p>악기와 구성, 위치, 방향을 수정할 수 있어요.</p></div>}</div>}
@@ -199,7 +210,8 @@ export function App() {
     {library && <LibraryDialog onClose={() => setLibrary(false)} onOpen={r => { loadRecord(r); setLibrary(false); }} canLeave={mayLeave} onImport={() => input.current?.click()} currentId={ed.meta?.id ?? null} onDeleteCurrent={() => ed.reset()}/>} 
     {admin && <AdminDialog onClose={() => setAdmin(false)}/>}
     {showInvites && <Modal title="받은 팀 초대" onClose={busy ? undefined : () => setShowInvites(false)}>{app.invitations.map(i => <div className="invitation" key={i.id}><strong>{i.teamName || '초대된 팀'}</strong><span>{ROLE_LABELS[i.role]}</span><button disabled={busy} onClick={() => { if (mayLeave()) void task(async () => { const id = await app.repo.acceptInvitation(i.id); await app.refreshTeams(); app.setTeam(id); setShowInvites(false); }); }}>초대 수락</button><button disabled={busy} onClick={() => void task(async () => { await app.repo.declineInvitation(i.id); await app.refreshTeams(); })}>거절</button></div>)}<p role="status">{notice}</p></Modal>}
-    {output && ed.meta && <Modal title="배치도 출력·내보내기" onClose={() => setOutput(false)} wide><p className="muted">현재 화면의 변경 내용을 포함합니다. 출력물이 온라인 저장을 대신하지는 않습니다.</p><div className="button-row"><button onClick={exportJSON}>JSON 내보내기</button>{editable && <button onClick={() => { setOutput(false); input.current?.click(); }}>JSON 가져오기</button>}<button onClick={() => { const url = printStage.current?.toDataURL(2); if (url) { const a = document.createElement('a'); a.href = url; a.download = `${safeFileName(ed.meta!.name)}.png`; a.click(); } }}>PNG 이미지</button><button className="primary" onClick={() => { makePrintImage(); setTimeout(() => window.print(), 150); }}>인쇄 / PDF 저장</button></div><div className="output-preview"><StaticStage ref={printStage} data={ed.data} catalog={app.catalog} width={900}/></div><CountCards counts={counts}/></Modal>}
+    {overview && ed.meta && <StageOverview data={ed.data} catalog={app.catalog} name={ed.meta.name} onClose={() => setOverview(false)}/>}
+    {output && ed.meta && <Modal title="배치도 출력·내보내기" onClose={() => setOutput(false)} wide><p className="muted">현재 화면의 변경 내용을 포함합니다. 출력물이 온라인 저장을 대신하지는 않습니다.</p><div className="button-row"><button onClick={exportJSON}>JSON 내보내기</button>{editable && <button onClick={() => { setOutput(false); input.current?.click(); }}>JSON 가져오기</button>}<button onClick={() => { const url = printStage.current?.toDataURL(2); if (url) { const a = document.createElement('a'); a.href = url; a.download = `${safeFileName(ed.meta!.name)}.png`; a.click(); } }}>PNG 이미지</button><button className="primary" disabled={busy} onClick={() => void printLayout()}>인쇄 / PDF 저장</button></div><div className="output-preview"><StaticStage ref={printStage} data={ed.data} catalog={app.catalog} width={900}/></div><CountCards counts={counts}/></Modal>}
     <section className="print-sheet"><h1>{ed.meta?.name}</h1><p>{formatDate(ed.meta?.eventDate)} · {app.team.name} · 배치 안내도 (실제 축척 아님)</p>{printImage && <img src={printImage} alt="무대 배치도"/>}<h2>준비 물품</h2><CountCards counts={counts}/><GroupTable counts={counts}/><p>일반 의자·장의자·키큰의자는 각각 별도로 집계합니다. 최종 준비 수량에는 예비 물품이 포함됩니다.</p></section>
   </div>;
 }
@@ -216,7 +228,7 @@ export function CountCards({ counts }: { counts: ReturnType<typeof computeCounts
   return <div className="count-cards">{(['stands', 'chairs', 'benches', 'tallChairs'] as const).map((k, i) => <div key={k}><span>{['보면대', '일반 의자', '장의자', '키큰의자'][i]}</span><strong data-testid={`total-${k}`}>{counts.total[k]}<small>개</small></strong><small>배치 {counts.placed[k]} + 예비 {counts.spares[k]}</small></div>)}</div>;
 }
 
-function GroupTable({ counts }: { counts: ReturnType<typeof computeCounts> }) { return <table className="group-table"><thead><tr><th>악기·파트</th><th>보면대</th><th>의자</th><th>장의자</th><th>키큰의자</th></tr></thead><tbody>{counts.byGroup.map(g => <tr key={g.key}><td><i style={{ background: g.color }}/>{g.label}</td><td>{g.stands}</td><td>{g.chairs}</td><td>{g.benches}</td><td>{g.tallChairs}</td></tr>)}{!counts.byGroup.length && <tr><td colSpan={5}>아직 배치한 세트가 없습니다.</td></tr>}</tbody></table>; }
+function GroupTable({ counts }: { counts: ReturnType<typeof computeCounts> }) { return <table className="group-table"><thead><tr><th>악기·파트</th><th>보면대</th><th>의자</th><th>장의자</th><th>키큰의자</th></tr></thead><tbody>{counts.byGroup.map(g => <tr key={g.key}><td><i style={{ background: g.color }}/>{g.label}</td><td>{g.stands}</td><td>{g.chairs}</td><td>{g.benches}</td><td>{g.tallChairs}</td></tr>)}{!counts.byGroup.length && <tr><td colSpan={5}>아직 배치한 세트가 없습니다.</td></tr>}</tbody><tfoot>{([['배치 합계', counts.placed], ['예비 물품', counts.spares], ['최종 준비 수량', counts.total]] as const).map(([label, values]) => <tr key={label}><th scope="row">{label}</th><td>{values.stands}</td><td>{values.chairs}</td><td>{values.benches}</td><td>{values.tallChairs}</td></tr>)}</tfoot></table>; }
 
 function AuthScreen() {
   const { repo } = useApp();
